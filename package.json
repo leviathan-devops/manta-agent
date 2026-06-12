@@ -1,43 +1,22 @@
 {
   "name": "manta-agent",
-  "version": "1.3.2",
-  "description": "MANTA Agent v1.1 - Dual-brain sequential with mechanical coordinator. Fully self-contained bundle.",
+  "version": "2.2.2",
+  "description": "MANTA v2.2.2 — Dual-Brain Sequential Precision Engineering Agent. Triangle architecture: orchestrator + plan brain + execution brain. Guardian-enforced tool allowlists, 7-gate pipeline, PSM problem solving, container runtime verification.",
   "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "exports": {
-    ".": "./dist/index.js",
-    "./*": "./dist/*.js"
-  },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --format esm --bundle --external @opencode-ai/plugin",
-    "build:standalone": "bun build src/index.ts --outdir dist --target bun --format esm --bundle",
-    "typecheck": "tsc --noEmit"
+    "build": "bun build index.ts --outdir dist --target bun --format esm --bundle --sourcemap --external @opencode-ai/plugin",
+    "verify": "node scripts/manta-verify.js",
+    "test": "node scripts/manta-verify.js"
   },
-  "peerDependencies": {
-    "@opencode-ai/plugin": "^1.3.6"
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.16.0"
   },
   "devDependencies": {
-    "@types/node": "^25.5.2",
-    "typescript": "^5.3.0",
-    "zod": "^4.1.8"
+    "typescript": "^5.0.0",
+    "zod": "^4.0.0"
   },
-  "files": [
-    "dist/",
-    "src/",
-    "package.json",
-    "README.md"
-  ],
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "keywords": [
-    "opencode",
-    "agent",
-    "dual-brain",
-    "manta",
-    "shark"
-  ],
-  "author": "Manta Agent",
-  "license": "MIT"
+    "bun": ">=1.0.0",
+    "node": ">=20.0.0"
+  }
 }

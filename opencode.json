@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-zen/deepseek-v4-flash-free",
+  "plugin": ["file:///root/.config/opencode/plugins/manta/index.js"],
+  "agent": {
+    "manta": {
+      "name": "manta",
+      "description": "MANTA v2.2.2 — Orchestrator. Spawns Plan/Execution brains.",
+      "mode": "primary",
+      "color": "#6B4C9A",
+      "tools": {
+        "task": true,
+        "manta-compaction": true,
+        "checkpoint": true,
+        "manta-status": true,
+        "manta-gate": true,
+        "manta-evidence": true
+      }
+    },
+    "manta-plan": {
+      "name": "manta-plan",
+      "description": "MANTA Plan Brain — Read-only with PSM.",
+      "mode": "subagent",
+      "hidden": true,
+      "color": "#6B4C9A",
+      "tools": {
+        "read": true, "glob": true, "grep": true, "webfetch": true, "question": true,
+        "manta-hive": true, "manta-vision": true, "manta-code-review": true, "checkpoint": true,
+        "ps-mode-status": true, "ps-mode-layer": true, "ps-mode-evidence": true, "ps-mode-derail": true, "ps-mode-debug": true
+      }
+    },
+    "manta-exec": {
+      "name": "manta-exec",
+      "description": "MANTA Execution Brain — Full dev.",
+      "mode": "subagent",
+      "hidden": true,
+      "color": "#6B4C9A",
+      "tools": {
+        "read": true, "write": true, "edit": true, "bash": true, "glob": true, "grep": true,
+        "manta-spawn-container": true, "manta-test-runner": true, "manta-runtime-audit": true,
+        "manta-code-audit": true, "manta-code-review": true, "manta-vision": true, "checkpoint": true
+      }
+    }
+  },
+  "permission": {
+    "*": {
+      "*": "allow"
+    }
+  }
+}
