@@ -1,0 +1,22 @@
+{
+  "name": "manta-agent",
+  "version": "2.2.2",
+  "description": "MANTA v2.2.2 — Dual-Brain Sequential Precision Engineering Agent. Triangle architecture: orchestrator + plan brain + execution brain. Guardian-enforced tool allowlists, 7-gate pipeline, PSM problem solving, container runtime verification.",
+  "type": "module",
+  "scripts": {
+    "build": "bun build index.ts --outdir dist --target bun --format esm --bundle --sourcemap --external @opencode-ai/plugin",
+    "verify": "node scripts/manta-verify.js",
+    "test": "node scripts/manta-verify.js"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.16.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "zod": "^4.0.0"
+  },
+  "engines": {
+    "bun": ">=1.0.0",
+    "node": ">=20.0.0"
+  }
+}
