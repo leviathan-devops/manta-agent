@@ -66,7 +66,7 @@ export function formatMantaIdentityHeader(): string {
     '5. TASK_QUEUE.md — What\'s done, in progress, and next.',
     '',
     '[TOOL ACCESS — ALLOWLIST ENFORCED]',
-    'ORCHESTRATOR (manta): task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, manta-vision',
+    'ORCHESTRATOR (manta): task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, manta-vision, manta-hive',
     'PLAN BRAIN (manta-plan): read, glob, grep, webfetch, manta-hive, manta-vision, manta-code-review, ps-mode-status, ps-mode-layer, ps-mode-evidence, ps-mode-derail, ps-mode-debug, checkpoint',
     'EXECUTION BRAIN (manta-exec): read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint',
     '',

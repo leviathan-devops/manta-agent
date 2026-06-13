@@ -1293,7 +1293,7 @@ function clearCurrentAgent(sessionId) {
 }
 
 // hooks/v4.1/guardian-hook.ts
-var ORCHESTRATOR_TOOLS = new Set(["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", "manta-vision"]);
+var ORCHESTRATOR_TOOLS = new Set(["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", "manta-vision", "manta-hive"]);
 var PLAN_TOOLS = new Set(["read", "glob", "grep", "webfetch", "question", "manta-hive", "manta-vision", "manta-code-review", "checkpoint", "ps-mode-status", "ps-mode-layer", "ps-mode-evidence", "ps-mode-derail", "ps-mode-debug"]);
 var EXEC_TOOLS = new Set(["read", "write", "edit", "bash", "glob", "grep", "manta-spawn-container", "manta-test-runner", "manta-runtime-audit", "manta-code-audit", "manta-code-review", "manta-vision", "checkpoint"]);
 var FOREIGN_IDENTIFIERS = ["shark", "kraken", "spider", "trident", "hydra", "hermes", "hive"];
@@ -1690,7 +1690,7 @@ function formatMantaIdentityHeader() {
     "5. TASK_QUEUE.md \u2014 What's done, in progress, and next.",
     "",
     "[TOOL ACCESS \u2014 ALLOWLIST ENFORCED]",
-    "ORCHESTRATOR (manta): task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, manta-vision",
+    "ORCHESTRATOR (manta): task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, manta-vision, manta-hive",
     "PLAN BRAIN (manta-plan): read, glob, grep, webfetch, manta-hive, manta-vision, manta-code-review, ps-mode-status, ps-mode-layer, ps-mode-evidence, ps-mode-derail, ps-mode-debug, checkpoint",
     "EXECUTION BRAIN (manta-exec): read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint",
     "",
@@ -4828,5 +4828,5 @@ export {
   MantaAgent as default
 };
 
-//# debugId=F221ECE56823221C64756E2164756E21
+//# debugId=A3BA19A7848B2A8F64756E2164756E21
 //# sourceMappingURL=index.js.map

@@ -2,7 +2,7 @@ import type { Hooks } from '@opencode-ai/plugin';
 import { Guardian } from '../../shared/guardian.js';
 import { getCurrentAgent } from './agent-state.js';
 
-const ORCHESTRATOR_TOOLS = new Set(['task', 'manta-compaction', 'checkpoint', 'manta-status', 'manta-gate', 'manta-evidence', 'todowrite', 'manta-vision']);
+const ORCHESTRATOR_TOOLS = new Set(['task', 'manta-compaction', 'checkpoint', 'manta-status', 'manta-gate', 'manta-evidence', 'todowrite', 'manta-vision', 'manta-hive']);
 const PLAN_TOOLS = new Set(['read', 'glob', 'grep', 'webfetch', 'question', 'manta-hive', 'manta-vision', 'manta-code-review', 'checkpoint', 'ps-mode-status', 'ps-mode-layer', 'ps-mode-evidence', 'ps-mode-derail', 'ps-mode-debug']);
 const EXEC_TOOLS = new Set(['read', 'write', 'edit', 'bash', 'glob', 'grep', 'manta-spawn-container', 'manta-test-runner', 'manta-runtime-audit', 'manta-code-audit', 'manta-code-review', 'manta-vision', 'checkpoint']);
 const FOREIGN_IDENTIFIERS = ['shark', 'kraken', 'spider', 'trident', 'hydra', 'hermes', 'hive'];
