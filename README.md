@@ -1,6 +1,6 @@
 # MANTA v2.2.2 — Dual-Brain Sequential Precision Engineering Agent
 
-**MANTA** (Modular Agent for Navigated Task Architecture) is a dual-brain sequential precision engineering agent built on the opencode plugin system. It implements a **Triangle Architecture**: an orchestrator delegates to a read-only Plan Brain for analysis and a full-access Execution Brain for implementation, with mechanical enforcement through guardian tool allowlists, a 7-stage gate pipeline, and container-runtime verification.
+**MANTA** (Main Agent Never Touches Anything) is a dual-brain sequential precision engineering agent built on the opencode plugin system. It implements a **Triangle Architecture**: an orchestrator delegates to a read-only Plan Brain for analysis and a full-access Execution Brain for implementation, with mechanical enforcement through guardian tool allowlists, a 7-stage gate pipeline, and container-runtime verification.
 
 ```
                     ┌─────────────────────────────────────┐
