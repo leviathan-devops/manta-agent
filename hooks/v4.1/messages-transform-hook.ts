@@ -1,6 +1,4 @@
 import type { Hooks } from '@opencode-ai/plugin';
-import { isMantaAgent } from '../../shared/agent-identity.js';
-import { getCurrentAgent } from './agent-state.js';
 
 /**
  * messages.transform hook — Output-side identity enforcement
@@ -8,6 +6,10 @@ import { getCurrentAgent } from './agent-state.js';
  * Scans assistant responses for identity drift and replaces them.
  * This catches the runtime default ("You are opencode") winning
  * over MANTA's injected identity header.
+ * 
+ * Uses system prompt content detection (session-agnostic) instead
+ * of session-scoped agent name detection, which fails in new TUI
+ * sessions where the agent hasn't been registered yet.
  */
 const DERAILMENT_PATTERNS = [
   {
@@ -50,10 +52,11 @@ function setText(msg: any, text: string): void {
 
 export function createMessagesTransformHook(): Hooks['experimental.chat.messages.transform'] {
   return async (input: any, output: any) => {
-    const sessionId = input?.sessionID || '';
-    const agent = getCurrentAgent(sessionId) || (input as any)?.agent || (input as any)?.agentName || '';
-    
-    if (!isMantaAgent(agent) && !agent.startsWith('manta')) return;
+    // Check system prompt for MANTA identity markers - session-agnostic
+    const sysOutput = output as { system?: string[] };
+    const systemText = Array.isArray(sysOutput?.system) ? sysOutput.system.join(' ') : '';
+    const isMantaSession = /\[AGENT IDENTITY BINDING\]|MANTA.*IDENTITY|You are MANTA/i.test(systemText);
+    if (!isMantaSession) return;
     
     const messages = output?.messages || output?.message ? [output.message] : [];
     
@@ -66,13 +69,11 @@ export function createMessagesTransformHook(): Hooks['experimental.chat.messages
       for (const dp of DERAILMENT_PATTERNS) {
         if (dp.pattern.test(text)) {
           if (dp.replacement === null) {
-            // Hard block — replace with identity re-assertion
             setText(msg, '[IDENTITY BLOCKED] I am MANTA v2.2.2.');
           } else {
-            // Soft replace — swap the derailed text
             setText(msg, dp.replacement);
           }
-          break; // Only apply first matching pattern
+          break;
         }
       }
     }
