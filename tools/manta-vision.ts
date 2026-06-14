@@ -27,7 +27,7 @@ export function createMantaVisionTool() {
       const ext = path.extname(imagePath).toLowerCase();
       const supported = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
       if (!supported.includes(ext)) {
-        return toResult({ status: 'error', message: `Unsupported image format: ${ext}. Supported: ${supported.join(', ')}` });
+        return toResult({ status: 'error', message: `Unsupported format: ${ext}. Supported: ${supported.join(', ')}` });
       }
 
       const imageBuffer = fs.readFileSync(imagePath);
@@ -42,43 +42,70 @@ export function createMantaVisionTool() {
             { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } },
           ],
         }],
-        max_tokens: 1024,
-        temperature: 0.0,
+        max_tokens: 2048,
+        temperature: 0.1,
       });
 
-      try {
-        const response = await fetch(VLM_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: payload,
-          signal: AbortSignal.timeout(120000),
-        });
+      // Try up to 2 times
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await fetch(VLM_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            signal: AbortSignal.timeout(120000),
+          });
 
-        if (!response.ok) {
-          return toResult({ status: 'error', message: `VLM server returned ${response.status}: ${response.statusText}` });
+          if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            return toResult({ 
+              status: 'error', 
+              message: `VLM HTTP ${response.status}: ${text.slice(0, 200)}` 
+            });
+          }
+
+          const data = await response.json();
+          const content = data?.choices?.[0]?.message?.content;
+
+          if (content && typeof content === 'string' && content.length > 0) {
+            return toResult({
+              status: 'ok',
+              imagePath,
+              content,
+              model: data?.model || 'GLM-4.6V-Flash',
+              usage: data?.usage || {},
+            });
+          }
+
+          // Empty response - retry once after 2s
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+
+          // Second attempt failed - return debug info
+          return toResult({ 
+            status: 'error', 
+            message: 'VLM returned empty content after 2 attempts',
+            debug: { 
+              responseKeys: Object.keys(data || {}),
+              hasChoices: !!data?.choices,
+              choicesLength: data?.choices?.length || 0,
+              hasMessage: !!(data?.choices?.[0]?.message),
+              contentType: typeof data?.choices?.[0]?.message?.content,
+              contentLength: data?.choices?.[0]?.message?.content?.length || 0,
+              rawPreview: JSON.stringify(data).slice(0, 500),
+            }
+          });
+        } catch (error: unknown) {
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          const err = error instanceof Error ? error : new Error(String(error));
+          const errMsg = err.message || String(error);
+          return toResult({ status: 'error', message: `VLM failed after 2 attempts: ${errMsg}` });
         }
-
-        const data = await response.json();
-        const content = data?.choices?.[0]?.message?.content || '';
-
-        if (!content) {
-          return toResult({ status: 'error', message: 'VLM returned empty response' });
-        }
-
-        return toResult({
-          status: 'ok',
-          imagePath,
-          content,
-          model: data?.model || 'GLM-4.6V-Flash',
-          usage: data?.usage || {},
-        });
-      } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        if (err.name === 'TimeoutError' || err.name === 'AbortError') {
-          return toResult({ status: 'error', message: 'VLM request timed out after 120s. The server may be busy or the image too large.' });
-        }
-        const errMsg = err.message || String(error);
-        return toResult({ status: 'error', message: `VLM request failed: ${errMsg}` });
       }
     },
   });
