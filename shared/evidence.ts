@@ -109,6 +109,11 @@ export class EvidenceCollector {
     return gates.every(gate => this.getGateEvidence(gate).length > 0);
   }
 
+  collectFormattedDebugLog(iteration: string, attempt: number, data: DebugLogFormat): void {
+    const formatted = formatDebugLog(data);
+    this.collectDebugLog(iteration, attempt, formatted);
+  }
+
   private ensureDir(dir: string): void {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -116,7 +121,7 @@ export class EvidenceCollector {
   }
 }
 
-interface DebugLogFormat {
+export interface DebugLogFormat {
   issue: string;
   location: string;
   rootCause: string;
@@ -124,9 +129,9 @@ interface DebugLogFormat {
   iteration: string;
 }
 
-function formatDebugLog(data: DebugLogFormat): string {
+export function formatDebugLog(data: DebugLogFormat): string {
   return `╔══════════════════════════════════════════════════════════════════════════╗
-║ SHARK DEBUG LOG — ${data.iteration}
+║ MANTA DEBUG LOG — ${data.iteration}
 ╚══════════════════════════════════════════════════════════════════════════╝
 
 ISSUE: ${data.issue}

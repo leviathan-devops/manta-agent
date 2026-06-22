@@ -8,6 +8,7 @@ import { formatMantaIdentityHeader } from '../../shared/manta-identity-header.js
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { mantaError } from '../../shared/manta-logger.js';
+import { ORCHESTRATOR_T1, PLAN_BRAIN_T1, EXECUTION_BRAIN_T1 } from '../../manta/brains.js';
 
 let globalBrain: ProblemSolvingBrain | null = null;
 let lastUserMessage: string = '';
@@ -84,7 +85,7 @@ export function createSystemTransformHook(stateStore?: StateStore): Hooks['exper
     }
 
     // ─── INFRASTRUCTURE: Clear & Rebuild ───
-    // This is the universal identity infrastructure pattern from SPIDER:
+    // Identity injection via clear+rebuild pattern:
     // 1. Clear the entire system array
     // 2. Rebuild from warheads in priority order
     // 3. Always re-inject — no dedup check
@@ -94,6 +95,15 @@ export function createSystemTransformHook(stateStore?: StateStore): Hooks['exper
     
     // [0] Identity header (always first — who we are)
     warheads.push(formatMantaIdentityHeader());
+    
+    // [0.5] T1 operational prompt per agent (how to operate)
+    if (agent === 'manta' || !agent) {
+      warheads.push(ORCHESTRATOR_T1);
+    } else if (agent === 'manta-plan') {
+      warheads.push(PLAN_BRAIN_T1);
+    } else if (agent === 'manta-exec') {
+      warheads.push(EXECUTION_BRAIN_T1);
+    }
     
     // [1-5] T1 warheads from synthesizer
     try {
@@ -128,7 +138,7 @@ export function createSystemTransformHook(stateStore?: StateStore): Hooks['exper
         '[WORKER SCOPE: manta-plan — Read-Only Analysis Brain]',
         'You are the MANTA Plan Brain — a read-only analysis and planning subagent.',
         'You CANNOT write code, edit files, or run bash commands.',
-        'Your tools: read, glob, grep, webfetch, manta-hive, manta-vision, manta-code-review, ps-mode-*, checkpoint.',
+        'Your tools: read, glob, grep, webfetch, hive_*, manta-code-review, ps-mode-*, checkpoint.',
         'You MUST use PSM (ps-mode-layer) for all analysis — start at Layer 1.',
         'Output JSON: analysis, executionPlan, gateCriteria.',
         'Return ONLY the JSON — no conversational fluff.',
@@ -139,7 +149,7 @@ export function createSystemTransformHook(stateStore?: StateStore): Hooks['exper
         '[WORKER SCOPE: manta-exec — Execution Brain]',
         'You are the MANTA Execution Brain — a full-dev implementation subagent.',
         'You implement EXACTLY from the plan provided. No deviations.',
-        'Your tools: read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint.',
+        'Your tools: read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, checkpoint.',
         'If stuck, respond EXACTLY: EXECUTION_STUCK: <tried> | <happened> | <needed>',
         'Do NOT use task tool — only orchestrator spawns subagents.',
         '[END WORKER SCOPE]',
@@ -160,7 +170,7 @@ export function createSystemTransformHook(stateStore?: StateStore): Hooks['exper
     }
     
     // Dynamic context after permanent warheads
-    sys.system.push(`[MANTA v2.2.2] Agent: ${agent} | Gate: plan`);
+    sys.system.push('[MANTA v2.2.2]');
     
     // Strip foreign identity patterns that may have been injected by other plugins
     const identityPatterns = [

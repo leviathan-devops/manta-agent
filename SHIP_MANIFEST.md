@@ -66,16 +66,22 @@ Three agent tiers with distinct tool permissions:
 - **Deadlock protocol**: logPosition() with consensus building (3 rounds max)
 
 ### 3. Identity Injection (system-transform-hook.ts)
-- Replaces opencode runtime defaults with MANTA identity header
-- Agent transition detection (non-MANTA → MANTA)
-- Foreign identity cleanup (SHARK/KRAKEN/TRIDENT/SPIDER patterns removed)
-- PSM mandate injected for manta-plan agent
-- 36-loop counter with status line
+- Clear+rebuild identity injection via system.transform (SPIDER pattern)
+- Identity header: static text via formatMantaIdentityHeader() [position 0]
+- T1 prompts: ORCHESTRATOR_T1/PLAN_BRAIN_T1/EXECUTION_BRAIN_T1 injected per-agent from brains.ts [position 0.5]
+- T1 warheads: 6 static warheads synthesized from T2 identity markdown files [positions 1-5]
+- Agent transition detection (non-MANTA → MANTA) with warhead [position 6]
+- Worker-scoped identity for manta-plan/manta-exec subagents [position 7]
+- PSM mandate injected for manta-plan agent [position 8]
+- Caching-safe: all system prompt content is statically deterministic per agent
 
-### 4. Loop Counter (guardian-hook.ts + system-transform-hook.ts)
-- 36-cycle hard limit on `task` tool calls
-- Forces build report output at limit
-- Persisted to .manta/context/loop-count.json
+### 4. Guardian Tool Enforcement (guardian-hook.ts)
+- L0: Per-agent tool allowlists with prefix matching (manta-*, reasoning-bus_*)
+- L1: Theatrical mock/stub detection in bash commands
+- L2: Anti-superficial content validation (min content length)
+- L3: Zone-based write containment (guardian.canWrite)
+- L4: Dangerous command + global opencode kill detection
+- Foreign tool blocking: shark/kraken/spider/trident/hydra/hermes blocked for all manta agents
 
 ### 5. Compaction System (compaction-manager.ts)
 - 5 survival docs written to disk at compaction
@@ -83,9 +89,11 @@ Three agent tiers with distinct tool permissions:
 - State snapshot for gate position restoration
 
 ### 6. Coordinator Brain Switching (MantaCoordinator)
-- Plan → Build → Plan cycle
-- Messenger-based handoff signals (spec-complete, build-complete)
-- Escalation path on 3 verify failures
+- Plan → Build → Plan cycle tracking via stateStore
+- Gate-advance callbacks: onSpecComplete() at plan→build, onBuildComplete() at build→review
+- Escalation path: onGateFailed() at 3 verify failures → switchToPlan('escalation')
+- Handoff log: .manta/context/handoff.json (persisted by messenger.ts)
+- Note: Subagent communication happens via task() return values, not messenger — messenger provides audit trail only
 
 ### 7. Evidence System (EvidenceCollector)
 - Per-gate evidence collection to .manta/evidence/{gate}/

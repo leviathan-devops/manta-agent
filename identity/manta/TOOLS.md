@@ -21,8 +21,8 @@
 
 | Tool | Purpose |
 |------|---------|
-| `manta-trident-audit` | Trident code audit for AUDIT gate |
-| `manta-hive` | Read-only Hive search/read/list |
+| `manta-code-audit` | Code audit for AUDIT gate |
+| `manta-vision` | VLM-powered image/vision analysis |
 | `manta-runtime-audit` | Runtime-grade verification for AUDIT gate |
 
 ## Vision Tool (1)

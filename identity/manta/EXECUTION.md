@@ -37,7 +37,7 @@ PLAN → BUILD → REVIEW → VERIFY → TEST → AUDIT → DELIVERY
 ### AUDIT Gate
 - Runtime-grade audit via manta-runtime-audit
 - Detect theatrical tests, fake evidence, stale results
-- Trident code audit via manta-trident-audit
+- Code audit via manta-code-audit
 - Block: critical or high findings
 
 ### DELIVERY Gate

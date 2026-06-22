@@ -6,8 +6,10 @@
                     ┌─────────────────────────────────────┐
                     │         MANTA v2.2.2                 │
                     │         (Orchestrator)                │
-                    │  6 tools: task, gate, status,         │
-                    │  evidence, compaction, checkpoint      │
+│  task, gate, status, evidence,          │
+│  compaction, checkpoint,                │
+│  visual-cortex_* (34), reasoning-bus_* (6), │
+│  hive_* (9)                               │
                     │                                      │
                     │  ┌─────────────────────────────────┐ │
                     │  │    7-STAGE GATE PIPELINE         │ │
@@ -25,9 +27,9 @@
    ┌─────────────────────────┐  ┌─────────────────────────┐
    │      manta-plan          │  │      manta-exec          │
    │     (Plan Brain)         │  │     (Exec Brain)         │
-   │  Read-only + PSM        │  │  Write + execution +    │
-   │  13 tools, NO           │  │  full filesystem access  │
-   │  write/edit/bash/task   │  │  13 tools, NO task tool  │
+│  Read-only + PSM        │  │  Write + execution +    │
+│  NO write/edit/bash/task│  │  full filesystem access  │
+│  + VC(34), RB(6)        │  │  + VC(34), RB(6)         │
    │  Analysis, planning,    │  │  Implementation, build,  │
    │  code review, research  │  │  test, container, audit  │
    └─────────────────────────┘  └─────────────────────────┘
@@ -43,21 +45,36 @@ MANTA operates three agents with strictly enforced tool boundaries:
 
 | Agent | Mode | Tools | Role |
 |-------|------|-------|------|
-| **manta** (Orchestrator) | primary | task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence | Spawns subagents, tracks gates, manages state |
-| **manta-plan** (Plan Brain) | subagent, hidden | read, glob, grep, webfetch, question, manta-hive, manta-vision, manta-code-review, checkpoint, ps-mode-* | Analysis, planning, PSM layer progression, code review |
-| **manta-exec** (Exec Brain) | subagent, hidden | read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint | Write execution fully — implementation, build, test, container ops, audit |
+| **manta** (Orchestrator) | primary | task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, visual-cortex_* (34 tools), reasoning-bus_* (6 tools), hive_* (9 tools) | Spawns subagents, tracks gates, manages state, vision, reasoning bus, hive mind |
+| **manta-plan** (Plan Brain) | subagent, hidden | read, glob, grep, webfetch, hive_* (5 read-only), manta-code-review, checkpoint, ps-mode-*, visual-cortex_* (34 tools), reasoning-bus_* (6 tools) | Analysis, planning, PSM layer progression, code review |
+| **manta-exec** (Exec Brain) | subagent, hidden | read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, checkpoint, visual-cortex_* (34 tools), reasoning-bus_* (6 tools) | Write execution fully — implementation, build, test, container ops, audit |
+
+### Platform Tool Categories
+
+MANTA v2.2.2 integrates three platform-level tool families, accessible to all agents:
+
+| Category | Count | Access | Description |
+|----------|-------|--------|-------------|
+| **Visual Cortex** (`visual-cortex_*`) | 34 tools | FULL for all agents | VLM vision, browser automation (CDP), screenshots, TradingView chart ops, SemInt monitoring, tile management |
+| **Reasoning Bus** (`reasoning-bus_*`) | 6 tools | FULL for all agents | Inter-agent messaging: channels, threads, proposals, concerns, decisions, resolutions |
+| **Hive Mind** (`hive_*`) | 9 tools (orch.), 5 read-only (subagents) | Tiered | Persistent shared memory: remember, context, scan, forget, purge, restore, trash, status |
+
+> **Note**: `manta-hive` has been removed and replaced with `hive_*` platform tools. `manta-vision` has been removed and replaced with `visual-cortex_*` MCP tools. `hive` is intentionally excluded from FOREIGN_IDENTIFIERS to allow `hive_*` tools through the firewall.
 
 ### Guardian Enforcement
 
 Tool allowlists are enforced **mechanically** — not by model prompting — through the `guardian-hook.ts` system:
 
 - **Per-agent allowlists**: Each agent has a hardcoded `Set<string>` of allowed tools
-- **Orchestrator sandbox**: Only 6 tools — cannot read/write files or execute bash directly
+- **Orchestrator sandbox**: Core tools only (task, compaction, checkpoint, status, gate, evidence) + visual-cortex (34), reasoning-bus (6), hive (9) — cannot read/write files or execute bash directly
 - **Plan Brain readonly**: Cannot write files, edit, run bash, or spawn containers
 - **Exec Brain no task**: Cannot spawn subagents (prevents infinite delegation loops)
-- **Foreign tool blocking**: All shark/kraken/spider/trident/hydra tools are blocked for manta agents
-- **Dangerous command guard**: `bash` commands are inspected for destructive patterns
+- **Foreign tool blocking**: All shark/kraken/spider/trident/hydra/hermes tools are blocked for manta agents
+- **Hive exemption**: `hive` is intentionally NOT in FOREIGN_IDENTIFIERS, allowing `hive_*` platform tools through
+- **Dangerous command guard**: `bash` commands are inspected for destructive patterns; `rm -rf` blocked at firewall L4
 - **File path zone restriction**: `write`/`edit` paths validated against allowed zones
+- **manta-hive removed**: Replaced with `hive_*` platform tools (hive_remember, hive_context, hive_scan, etc.)
+- **manta-vision removed**: Replaced with `visual-cortex_*` MCP tools (visual-cortex_analyze, visual-cortex_browser_screenshot, etc.)
 
 ### Identity Pipeline
 
@@ -196,10 +213,8 @@ manta-agent/
 │   ├── manta-spawn-container.ts # Docker container lifecycle
 │   ├── manta-test-runner.ts    # Runtime test execution
 │   ├── manta-code-review.ts    # Code quality review
-│   ├── manta-hive.ts           # Hive mind interaction
 │   ├── manta-runtime-audit.ts  # Runtime grade audit
 │   ├── manta-code-audit.ts     # Source code audit
-│   ├── manta-vision.ts         # VLM image analysis
 │   └── manta-compaction.ts     # Compaction anchor management
 ├── problem-solving/
 │   ├── psm-activator.ts        # Derailment detection (stuck loop, error repeat, etc.)
@@ -275,7 +290,7 @@ manta-agent/
 
 | Version | Branch | Status |
 |---------|--------|--------|
-| v2.2.2 | `master` | **PENDING SHIP APPROVAL** — Current release |
+| v2.2.2 | `main` | **SHIPPED** — Current release, A+ remediation complete |
 | v1.3.5 | `legacy-v1.3.5` | Legacy — Previous architecture |
 
 ## License

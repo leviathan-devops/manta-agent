@@ -198,7 +198,7 @@ export class ProblemSolvingStateMachine {
     };
 
     const lines: string[] = [];
-    lines.push(`[PROBLEM SOLVING MODE — TRIDENT BRAIN v1.0]`);
+    lines.push(`[MANTA PSM v2.2.2 — Problem Solving Mode]`);
     lines.push('');
     lines.push(`Iteration: ${this.state.iteration}`);
     lines.push(`Current Layer: ${layerNames[this.state.currentLayer]}`);

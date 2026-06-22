@@ -9,7 +9,7 @@ MANTA uses a triangle architecture: Orchestrator → Plan Brain (analysis) → E
 3. Plan Brain returns JSON with analysis, executionPlan, gateCriteria
 4. Orchestrator spawns Execution Brain via `task(agent=manta-exec)` with the plan
 5. Execution Brain implements using full dev tools (read, write, edit, bash)
-6. Orchestrator repeats up to 36 cycles max
+6. Orchestrator repeats until success
 7. When all gates pass, deliver to user
 
 ## Key Rules

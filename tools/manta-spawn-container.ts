@@ -82,12 +82,12 @@ function createSnapshot(pluginSource: string, model: string, apiKey: string): st
     agent: {
       [MANTA_AGENT_NAME]: {
         name: MANTA_AGENT_NAME,
-        description: 'Trident Enhanced Manta — Problem Solving Mode',
+        description: 'MANTA v2.2.2 — Problem Solving Mode',
         mode: 'primary',
         color: MANTA_AGENT_COLOR,
         tools: {
           'manta-status': true, 'manta-gate': true, 'manta-evidence': true,
-          'checkpoint': true, 'manta-hive': true, 'manta-vision': true,
+          'checkpoint': true, 'hive_context': true, 'hive_scan': true, 'hive_status': true, 'hive_trash_list': true, 'hive_trash_status': true, 'hive_remember': true, 'hive_forget': true, 'hive_purge': true, 'hive_restore': true, 'manta-vision': true,
           'manta-compaction': true, 'manta-code-review': true,
           'manta-runtime-audit': true, 'manta-code-audit': true,
           'manta-spawn-container': true, 'manta-test-runner': true,

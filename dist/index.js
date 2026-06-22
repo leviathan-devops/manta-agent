@@ -146,6 +146,8 @@ function createStateStore() {
 }
 
 // shared/messenger.ts
+import * as fs2 from "fs";
+import * as path2 from "path";
 var PRIORITY_ORDER = {
   critical: 0,
   high: 1,
@@ -159,6 +161,22 @@ function createMantaMessenger() {
   const queues = new Map;
   const pendingAcks = new Map;
   const receivedAcks = new Set;
+  const mantaDir = path2.join(process.cwd(), ".manta", "context");
+  try {
+    fs2.mkdirSync(mantaDir, { recursive: true });
+  } catch {}
+  try {
+    const logPath = path2.join(mantaDir, "handoff.json");
+    if (fs2.existsSync(logPath)) {
+      const data = JSON.parse(fs2.readFileSync(logPath, "utf-8"));
+      if (Array.isArray(data)) {
+        for (const msg of data) {
+          const queue = getQueue(msg.to);
+          queue.push(msg);
+        }
+      }
+    }
+  } catch {}
   function getQueue(brainId) {
     if (!queues.has(brainId)) {
       queues.set(brainId, []);
@@ -195,6 +213,17 @@ function createMantaMessenger() {
           receivedAcks.add(msg.id);
         }
       }
+      try {
+        const logPath = path2.join(mantaDir, "handoff.json");
+        let existing = [];
+        try {
+          existing = JSON.parse(fs2.readFileSync(logPath, "utf-8"));
+        } catch {}
+        existing.push({ ...msg, writtenAt: Date.now() });
+        if (existing.length > 50)
+          existing = existing.slice(-50);
+        fs2.writeFileSync(logPath, JSON.stringify(existing, null, 2));
+      } catch {}
     },
     receive(brainId) {
       const queue = getQueue(brainId);
@@ -272,16 +301,16 @@ class Guardian {
   setLevel(level) {
     this.level = level;
   }
-  canRead(path2) {
+  canRead(path3) {
     if (this.level === "SANDBOX")
       return true;
-    return this.checkPath(path2, "read");
+    return this.checkPath(path3, "read");
   }
-  canWrite(path2) {
+  canWrite(path3) {
     if (this.level === "SANDBOX") {
-      return !this.isDangerousCommand(path2);
+      return !this.isDangerousCommand(path3);
     }
-    return this.checkPath(path2, "write");
+    return this.checkPath(path3, "write");
   }
   isDangerousCommand(command) {
     for (const pattern of DANGEROUS_PATTERNS) {
@@ -291,8 +320,8 @@ class Guardian {
     }
     return false;
   }
-  classifyZone(path2) {
-    const expandedPath = path2.replace(/^~/, process.env.HOME || __require("os").homedir() || "/root");
+  classifyZone(path3) {
+    const expandedPath = path3.replace(/^~/, process.env.HOME || __require("os").homedir() || "/root");
     for (const pattern of PERSONAL_PATHS) {
       if (pattern.test(expandedPath)) {
         return "PERSONAL";
@@ -311,8 +340,8 @@ class Guardian {
     }
     return "SANDBOX";
   }
-  checkPath(path2, operation) {
-    const zone = this.classifyZone(path2);
+  checkPath(path3, operation) {
+    const zone = this.classifyZone(path3);
     switch (this.level) {
       case "SANDBOX":
         return zone !== "PERSONAL" && zone !== "SYSTEM";
@@ -333,18 +362,18 @@ class Guardian {
   getLevel() {
     return this.level;
   }
-  getZoneInfo(path2) {
-    const zone = this.classifyZone(path2);
+  getZoneInfo(path3) {
+    const zone = this.classifyZone(path3);
     return {
       zone,
-      allowed: this.checkPath(path2, "write")
+      allowed: this.checkPath(path3, "write")
     };
   }
 }
 
 // shared/evidence.ts
-import * as fs2 from "fs";
-import * as path2 from "path";
+import * as fs3 from "fs";
+import * as path3 from "path";
 var EVIDENCE_DIR = "evidence";
 var ITERATIONS_DIR = "iterations";
 
@@ -354,38 +383,38 @@ class EvidenceCollector {
     this.basePath = basePath;
   }
   collectEvidence(evidence) {
-    const gateDir = path2.join(this.basePath, EVIDENCE_DIR, evidence.gate);
-    const timestampDir = path2.join(gateDir, String(evidence.timestamp));
+    const gateDir = path3.join(this.basePath, EVIDENCE_DIR, evidence.gate);
+    const timestampDir = path3.join(gateDir, String(evidence.timestamp));
     this.ensureDir(timestampDir);
-    const metaPath = path2.join(timestampDir, "evidence.json");
-    fs2.writeFileSync(metaPath, JSON.stringify(evidence, null, 2));
+    const metaPath = path3.join(timestampDir, "evidence.json");
+    fs3.writeFileSync(metaPath, JSON.stringify(evidence, null, 2));
     if (evidence.debugLog) {
-      fs2.writeFileSync(path2.join(timestampDir, "debug.log"), evidence.debugLog);
+      fs3.writeFileSync(path3.join(timestampDir, "debug.log"), evidence.debugLog);
     }
   }
   collectDebugLog(iteration, attempt, debugLog) {
-    const iterDir = path2.join(this.basePath, ITERATIONS_DIR, iteration, "debug-logs");
+    const iterDir = path3.join(this.basePath, ITERATIONS_DIR, iteration, "debug-logs");
     this.ensureDir(iterDir);
-    const logPath = path2.join(iterDir, `attempt-${attempt}.md`);
-    fs2.writeFileSync(logPath, debugLog);
+    const logPath = path3.join(iterDir, `attempt-${attempt}.md`);
+    fs3.writeFileSync(logPath, debugLog);
   }
   recordIteration(evidence) {
-    const iterDir = path2.join(this.basePath, ITERATIONS_DIR, evidence.iteration);
+    const iterDir = path3.join(this.basePath, ITERATIONS_DIR, evidence.iteration);
     this.ensureDir(iterDir);
-    const metaPath = path2.join(iterDir, "iteration.json");
-    fs2.writeFileSync(metaPath, JSON.stringify(evidence, null, 2));
+    const metaPath = path3.join(iterDir, "iteration.json");
+    fs3.writeFileSync(metaPath, JSON.stringify(evidence, null, 2));
   }
   getGateEvidence(gate) {
-    const gateDir = path2.join(this.basePath, EVIDENCE_DIR, gate);
-    if (!fs2.existsSync(gateDir))
+    const gateDir = path3.join(this.basePath, EVIDENCE_DIR, gate);
+    if (!fs3.existsSync(gateDir))
       return [];
     const evidences = [];
-    const entries = fs2.readdirSync(gateDir);
+    const entries = fs3.readdirSync(gateDir);
     for (const entry of entries) {
-      const evidencePath = path2.join(gateDir, entry, "evidence.json");
-      if (fs2.existsSync(evidencePath)) {
+      const evidencePath = path3.join(gateDir, entry, "evidence.json");
+      if (fs3.existsSync(evidencePath)) {
         try {
-          const content = fs2.readFileSync(evidencePath, "utf-8");
+          const content = fs3.readFileSync(evidencePath, "utf-8");
           evidences.push(JSON.parse(content));
         } catch (e) {
           mantaError("evidence: failed to parse evidence file:", e);
@@ -399,20 +428,40 @@ class EvidenceCollector {
     return evidences[0] || null;
   }
   getIterationLogs(iteration) {
-    const logsDir = path2.join(this.basePath, ITERATIONS_DIR, iteration, "debug-logs");
-    if (!fs2.existsSync(logsDir))
+    const logsDir = path3.join(this.basePath, ITERATIONS_DIR, iteration, "debug-logs");
+    if (!fs3.existsSync(logsDir))
       return [];
-    return fs2.readdirSync(logsDir).filter((f) => f.endsWith(".md")).sort().map((f) => fs2.readFileSync(path2.join(logsDir, f), "utf-8"));
+    return fs3.readdirSync(logsDir).filter((f) => f.endsWith(".md")).sort().map((f) => fs3.readFileSync(path3.join(logsDir, f), "utf-8"));
   }
   hasCompleteEvidence() {
     const gates = ["plan", "build", "test", "verify", "audit", "delivery"];
     return gates.every((gate) => this.getGateEvidence(gate).length > 0);
   }
+  collectFormattedDebugLog(iteration, attempt, data) {
+    const formatted = formatDebugLog(data);
+    this.collectDebugLog(iteration, attempt, formatted);
+  }
   ensureDir(dir) {
-    if (!fs2.existsSync(dir)) {
-      fs2.mkdirSync(dir, { recursive: true });
+    if (!fs3.existsSync(dir)) {
+      fs3.mkdirSync(dir, { recursive: true });
     }
   }
+}
+function formatDebugLog(data) {
+  return `\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557
+\u2551 MANTA DEBUG LOG \u2014 ${data.iteration}
+\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255D
+
+ISSUE: ${data.issue}
+
+LOCATION: ${data.location}
+
+ROOT CAUSE: ${data.rootCause}
+
+FIX: ${data.fix}
+
+ITERATION: ${data.iteration}
+`;
 }
 
 // shared/gates.ts
@@ -739,8 +788,8 @@ class MantaCoordinator {
 }
 
 // shared/compaction-manager.ts
-import * as fs3 from "fs";
-import * as path3 from "path";
+import * as fs4 from "fs";
+import * as path4 from "path";
 var TIERS = [
   { name: "green", min: 0, label: "GREEN (0-15%) \u2014 Fresh session" },
   { name: "blue", min: 0.15, label: "BLUE (15-30%) \u2014 First checkpoint" },
@@ -833,7 +882,7 @@ class CompactionManager {
   gateStatuses = {};
   errorsUnsolved = [];
   constructor(workspaceDir) {
-    this.folderPath = path3.join(workspaceDir, ".manta", "compaction-survival");
+    this.folderPath = path4.join(workspaceDir, ".manta", "compaction-survival");
     this.estimator = new TokenEstimator(170000);
   }
   onTierCrossing(cb) {
@@ -842,7 +891,7 @@ class CompactionManager {
   initialize(gateState) {
     if (this.initialized)
       return;
-    fs3.mkdirSync(this.folderPath, { recursive: true });
+    fs4.mkdirSync(this.folderPath, { recursive: true });
     this.initialized = true;
     if (gateState) {
       this.currentGate = typeof gateState.currentGate === "string" ? gateState.currentGate : "plan";
@@ -856,7 +905,7 @@ class CompactionManager {
     return this.initialized;
   }
   hasAnchors() {
-    return ANCHOR_FILES.every((f) => fs3.existsSync(path3.join(this.folderPath, f)));
+    return ANCHOR_FILES.every((f) => fs4.existsSync(path4.join(this.folderPath, f)));
   }
   getFolderPath() {
     return this.folderPath;
@@ -995,10 +1044,10 @@ class CompactionManager {
     };
   }
   readAnchor(name) {
-    const fp = path3.join(this.folderPath, name);
-    if (!fs3.existsSync(fp))
+    const fp = path4.join(this.folderPath, name);
+    if (!fs4.existsSync(fp))
       return null;
-    return fs3.readFileSync(fp, "utf-8");
+    return fs4.readFileSync(fp, "utf-8");
   }
   updateGateState(gateState) {
     if (typeof gateState.currentGate === "string")
@@ -1009,8 +1058,8 @@ class CompactionManager {
       this.gateStatuses = gateState.gateStatus;
   }
   writeExport(trigger) {
-    const dir = path3.join(this.folderPath, `export-${Date.now()}`);
-    fs3.mkdirSync(dir, { recursive: true });
+    const dir = path4.join(this.folderPath, `export-${Date.now()}`);
+    fs4.mkdirSync(dir, { recursive: true });
     const data = {
       exportId: `export-${Date.now()}`,
       timestamp: Date.now(),
@@ -1019,8 +1068,8 @@ class CompactionManager {
       gate: this.currentGate,
       iteration: this.currentIteration
     };
-    fs3.writeFileSync(path3.join(dir, "manifest.json"), JSON.stringify(data, null, 2));
-    fs3.writeFileSync(path3.join(dir, "full-state.json"), JSON.stringify({
+    fs4.writeFileSync(path4.join(dir, "manifest.json"), JSON.stringify(data, null, 2));
+    fs4.writeFileSync(path4.join(dir, "full-state.json"), JSON.stringify({
       gate: this.currentGate,
       iteration: this.currentIteration,
       gateStatuses: this.gateStatuses,
@@ -1030,12 +1079,12 @@ class CompactionManager {
       tokenEstimate: this.estimator.getStats()
     }, null, 2));
     try {
-      const parentDir = path3.dirname(dir);
-      const allExports = fs3.readdirSync(parentDir).filter((d) => d.startsWith("export-")).map((d) => ({ name: d, time: fs3.statSync(path3.join(parentDir, d)).mtimeMs })).sort((a, b) => b.time - a.time);
+      const parentDir = path4.dirname(dir);
+      const allExports = fs4.readdirSync(parentDir).filter((d) => d.startsWith("export-")).map((d) => ({ name: d, time: fs4.statSync(path4.join(parentDir, d)).mtimeMs })).sort((a, b) => b.time - a.time);
       if (allExports.length > 10) {
         const toRemove = allExports.slice(10);
         for (const exp of toRemove) {
-          fs3.rmSync(path3.join(parentDir, exp.name), { recursive: true, force: true });
+          fs4.rmSync(path4.join(parentDir, exp.name), { recursive: true, force: true });
         }
       }
     } catch (e) {
@@ -1043,12 +1092,12 @@ class CompactionManager {
     }
   }
   listExports() {
-    if (!fs3.existsSync(this.folderPath))
+    if (!fs4.existsSync(this.folderPath))
       return [];
-    return fs3.readdirSync(this.folderPath).filter((d) => d.startsWith("export-"));
+    return fs4.readdirSync(this.folderPath).filter((d) => d.startsWith("export-"));
   }
   writeAllAnchors(trigger) {
-    fs3.mkdirSync(this.folderPath, { recursive: true });
+    fs4.mkdirSync(this.folderPath, { recursive: true });
     const ts = new Date().toISOString();
     const tier = this.estimator.getTier();
     const tierLabel = TIERS.find((t) => t.name === tier)?.label || tier;
@@ -1062,7 +1111,7 @@ class CompactionManager {
     this.writeAnchor("POST-COMPACTION_PROMPT.md", this.renderPostCompaction(ts));
   }
   writeAnchor(name, content) {
-    fs3.writeFileSync(path3.join(this.folderPath, name), content);
+    fs4.writeFileSync(path4.join(this.folderPath, name), content);
   }
   renderCompactionSurvival(ts, tierLabel, trigger) {
     return `# COMPACTION_SURVIVAL.md \u2014 READ THIS FIRST AFTER COMPACTION
@@ -1293,10 +1342,14 @@ function clearCurrentAgent(sessionId) {
 }
 
 // hooks/v4.1/guardian-hook.ts
-var ORCHESTRATOR_TOOLS = new Set(["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", "manta-vision", "manta-hive"]);
-var PLAN_TOOLS = new Set(["read", "glob", "grep", "webfetch", "question", "manta-hive", "manta-vision", "manta-code-review", "checkpoint", "ps-mode-status", "ps-mode-layer", "ps-mode-evidence", "ps-mode-derail", "ps-mode-debug"]);
-var EXEC_TOOLS = new Set(["read", "write", "edit", "bash", "glob", "grep", "manta-spawn-container", "manta-test-runner", "manta-runtime-audit", "manta-code-audit", "manta-code-review", "manta-vision", "checkpoint"]);
-var FOREIGN_IDENTIFIERS = ["shark", "kraken", "spider", "trident", "hydra", "hermes", "hive"];
+var VC_TOOLS = ["visual-cortex_analyze", "visual-cortex_browser_capture_element", "visual-cortex_browser_click", "visual-cortex_browser_evaluate", "visual-cortex_browser_navigate", "visual-cortex_browser_press_key", "visual-cortex_browser_screenshot", "visual-cortex_browser_scroll", "visual-cortex_browser_type", "visual-cortex_capture", "visual-cortex_cdp_status", "visual-cortex_compare", "visual-cortex_context", "visual-cortex_epoch_summary", "visual-cortex_health", "visual-cortex_list_tiles", "visual-cortex_recall", "visual-cortex_semint_configure", "visual-cortex_semint_start", "visual-cortex_semint_status", "visual-cortex_semint_stop", "visual-cortex_spawn_container_tile", "visual-cortex_status", "visual-cortex_tv_draw_fibonacci", "visual-cortex_tv_draw_horizontal_line", "visual-cortex_tv_draw_trade_setup", "visual-cortex_tv_draw_zone", "visual-cortex_tv_get_backtest_results", "visual-cortex_tv_get_visible_bars", "visual-cortex_tv_open_chart", "visual-cortex_tv_screenshot", "visual-cortex_tv_set_timeframe", "visual-cortex_tv_switch_symbol", "visual-cortex_verify_tile"];
+var RB_TOOLS = ["reasoning-bus_reasoning_channels", "reasoning-bus_reasoning_check", "reasoning-bus_reasoning_join", "reasoning-bus_reasoning_post", "reasoning-bus_reasoning_read", "reasoning-bus_reasoning_resolve"];
+var HIVE_READ_TOOLS = ["hive_context", "hive_scan", "hive_status", "hive_trash_list", "hive_trash_status"];
+var HIVE_FULL_TOOLS = ["hive_remember", "hive_forget", "hive_purge", "hive_restore"];
+var ORCHESTRATOR_TOOLS = new Set(["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS, ...HIVE_FULL_TOOLS]);
+var PLAN_TOOLS = new Set(["read", "glob", "grep", "webfetch", "question", "manta-code-review", "checkpoint", "ps-mode-status", "ps-mode-layer", "ps-mode-evidence", "ps-mode-derail", "ps-mode-debug", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+var EXEC_TOOLS = new Set(["read", "write", "edit", "bash", "glob", "grep", "manta-spawn-container", "manta-test-runner", "manta-runtime-audit", "manta-code-audit", "manta-code-review", "checkpoint", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+var FOREIGN_IDENTIFIERS = ["shark", "kraken", "spider", "trident", "hydra", "hermes"];
 function isForeignTool(tool) {
   const lower = tool.toLowerCase();
   return FOREIGN_IDENTIFIERS.some((id) => lower.includes(id)) && !lower.startsWith("manta");
@@ -1331,14 +1384,17 @@ function createGuardianHook(guardian) {
       throw new Error(`[FIREWALL_BLOCKED] L0: ${tool} not allowed. Use manta-* tools.`);
     }
     if (agent === "manta") {
-      if (!ORCHESTRATOR_TOOLS.has(tool)) {
+      const isAllowed = ORCHESTRATOR_TOOLS.has(tool) || tool.startsWith("visual-cortex_") || tool.startsWith("reasoning-bus_");
+      if (!isAllowed) {
         throw new Error(`[FIREWALL_BLOCKED] L0: ${tool} denied. Use task(manta-plan/exec).`);
       }
     } else if (agent === "manta-plan") {
-      if (!PLAN_TOOLS.has(tool))
+      const isAllowed = PLAN_TOOLS.has(tool) || tool.startsWith("visual-cortex_") || tool.startsWith("reasoning-bus_");
+      if (!isAllowed)
         throw new Error(`[FIREWALL_BLOCKED] L0: Plan read-only. ${tool} denied.`);
     } else if (agent === "manta-exec") {
-      if (!EXEC_TOOLS.has(tool))
+      const isAllowed = EXEC_TOOLS.has(tool) || tool.startsWith("visual-cortex_") || tool.startsWith("reasoning-bus_");
+      if (!isAllowed)
         throw new Error(`[FIREWALL_BLOCKED] L0: Exec cannot use ${tool}.`);
     }
     if (tool === "bash") {
@@ -1361,6 +1417,9 @@ function createGuardianHook(guardian) {
     }
     if (tool === "bash") {
       const command = String(args?.command || args?.cmd || "");
+      if (/rm\s+-rf/i.test(command)) {
+        throw new Error(`[FIREWALL_BLOCKED] L4: rm -rf blocked. Use targeted file removal only.`);
+      }
       if (guardian.isDangerousCommand(command))
         throw new Error(`[FIREWALL_BLOCKED] L4: Dangerous cmd.`);
       if (isGlobalOpencodeKill(command))
@@ -1379,10 +1438,10 @@ function isMantaAgent(agent) {
 }
 
 // shared/manta-identity-loader.ts
-import * as fs4 from "fs";
-import * as path4 from "path";
+import * as fs5 from "fs";
+import * as path5 from "path";
 import { fileURLToPath } from "url";
-var IDENTITY_FILES = ["MANTA.md", "IDENTITY.md", "EXECUTION.md", "QUALITY.md", "TOOLS.md", "FIREWALL_CONTEXT.md", "WORKFLOW.md"];
+var IDENTITY_FILES = ["MANTA.md", "IDENTITY.md", "EXECUTION.md", "QUALITY.md", "TOOLS.md", "FIREWALL_CONTEXT.md", "WORKFLOW.md", "ARCHITECTURE.md"];
 var pluginDir = null;
 var cachedIdentity = null;
 var cachedPrompt = null;
@@ -1393,15 +1452,15 @@ function setPluginDirectory(dir) {
 function getSearchPaths() {
   const paths = [];
   if (pluginDir) {
-    paths.push(path4.join(pluginDir, "identity", "manta"));
-    paths.push(path4.join(pluginDir, "..", "identity", "manta"));
+    paths.push(path5.join(pluginDir, "identity", "manta"));
+    paths.push(path5.join(pluginDir, "..", "identity", "manta"));
   }
-  const dirname3 = path4.dirname(fileURLToPath(import.meta.url));
-  paths.push(path4.join(dirname3, "..", "identity", "manta"));
-  paths.push(path4.join(dirname3, "..", "..", "identity", "manta"));
-  paths.push(path4.join(process.cwd(), "identity", "manta"));
-  paths.push(path4.join(process.cwd(), "..", "identity", "manta"));
-  paths.push(path4.join(process.env.HOME || "/root", ".config", "opencode", "identity", "manta"));
+  const dirname3 = path5.dirname(fileURLToPath(import.meta.url));
+  paths.push(path5.join(dirname3, "..", "identity", "manta"));
+  paths.push(path5.join(dirname3, "..", "..", "identity", "manta"));
+  paths.push(path5.join(process.cwd(), "identity", "manta"));
+  paths.push(path5.join(process.cwd(), "..", "identity", "manta"));
+  paths.push(path5.join(process.env.HOME || "/root", ".config", "opencode", "identity", "manta"));
   return paths;
 }
 function loadMantaIdentity() {
@@ -1409,8 +1468,8 @@ function loadMantaIdentity() {
     return cachedIdentity;
   const searchPaths = getSearchPaths();
   for (const sp of searchPaths) {
-    const fullPath = path4.resolve(sp);
-    if (fs4.existsSync(fullPath)) {
+    const fullPath = path5.resolve(sp);
+    if (fs5.existsSync(fullPath)) {
       const identity = {
         MANTA: "",
         IDENTITY: "",
@@ -1418,15 +1477,16 @@ function loadMantaIdentity() {
         QUALITY: "",
         TOOLS: "",
         FIREWALL_CONTEXT: "",
-        WORKFLOW: ""
+        WORKFLOW: "",
+        ARCHITECTURE: ""
       };
       let loadedCount = 0;
       for (const file of IDENTITY_FILES) {
-        const filePath = path4.join(fullPath, file);
-        if (fs4.existsSync(filePath)) {
+        const filePath = path5.join(fullPath, file);
+        if (fs5.existsSync(filePath)) {
           try {
             const key = file.replace(".md", "");
-            identity[key] = fs4.readFileSync(filePath, "utf-8");
+            identity[key] = fs5.readFileSync(filePath, "utf-8");
             loadedCount++;
           } catch (err) {
             mantaError("[MantaIdentityLoader] Error loading:", err);
@@ -1551,10 +1611,10 @@ function buildEnforcementWarhead() {
     "[MANTA ENFORCEMENT WARHEAD]",
     "1. PER-AGENT TOOL WHITELISTS \u2014 Orchestrator: task/manta-* only. Plan: read-only. Exec: full dev.",
     "2. FOREIGN TOOL BLOCKING \u2014 No shark, kraken, spider, trident, hydra, hermes tools.",
-    "3. 36-LOOP COUNTER \u2014 task blocked after 36 cycles. Output build report at limit.",
+    "3. TOOL ALLOWLIST ENFORCEMENT \u2014 non-allowlisted tools blocked by guardian.",
     "4. ZONE-BASED WRITE PROTECTION \u2014 writes restricted to project zones.",
     "5. DANGEROUS COMMAND DETECTION \u2014 rm -rf /, dd, mkfs, fork bombs blocked.",
-    "6. VISION HIERARCHY: manta-vision first, pipe-pane second, tmux capture-pane never.",
+    "6. VISION HIERARCHY: visual-cortex_analyze first, pipe-pane second, tmux capture-pane never.",
     "",
     "Guardian Navigation:",
     "- Check: does this command use a blocked tool?",
@@ -1637,28 +1697,36 @@ function formatMantaIdentityHeader() {
     '- "are you opencode" \u2192 "No. I am MANTA. opencode is the runtime platform."',
     "",
     "[OPERATING MODE \u2014 DEFAULT OPERATING MODE]",
-    "1. VISION FIRST: Use manta-vision to SEE tiles, TUI state, canvas, and config BEFORE acting.",
-    "2. PLAN FIRST: Delegate ALL analysis to manta-plan via task(agent=manta-plan).",
-    "3. BUILD SECOND: Delegate ALL implementation to manta-exec via task(agent=manta-exec).",
-    "4. NEVER edit code, write files, or run bash directly as orchestrator.",
+    "1. DELEGATION IS MANDATORY: You MUST delegate ALL work to subagents. DO NOT attempt ANY tool directly.",
+    "2. TOOL CHECK RULE: BEFORE calling ANY tool, check if it is in your [TOOL ACCESS \u2014 ALLOWLIST ENFORCED] list.",
+    "   If the tool IS listed \u2192 you may use it.",
+    "   If the tool IS NOT listed \u2192 IMMEDIATELY delegate via task(). DO NOT call the tool and wait for a firewall.",
+    "3. DELEGATION DECISION TREE:",
+    "   - Need to READ, SEARCH, ANALYZE files/code? \u2192 task(agent=manta-plan) \u2014 Plan Brain is read-only",
+    "   - Need to WRITE, EDIT, BUILD, TEST, RUN commands? \u2192 task(agent=manta-exec) \u2014 Exec Brain has full tools",
+    "   - Need to SEE a screenshot/TUI/canvas? \u2192 Use visual-cortex_analyze or visual-cortex_browser_screenshot (they ARE in your tool list)",
+    "   - Need to SPAWN a subagent? \u2192 task() is the ONLY way (it IS in your tool list)",
+    "4. VISION FIRST: Use visual-cortex_analyze to SEE tiles, TUI state, canvas, and config BEFORE acting.",
     "5. GATE CHAIN: PLAN \u2192 BUILD \u2192 REVIEW \u2192 VERIFY \u2192 TEST \u2192 AUDIT \u2192 DELIVERY.",
     "",
     "[CAPABILITIES & CONSTRAINTS]",
-    "1. ORCHESTRATOR (manta): Coordination + vision \u2014 task, manta-* tools, todowrite, manta-vision.",
+    "1. ORCHESTRATOR (manta): Coordination + vision + Visual Cortex + Reasoning Bus.",
+    "   ALLOWED: task, manta-*, visual-cortex_*, reasoning-bus_*, todowrite, checkpoint.",
     "   CANNOT: read, write, edit, bash, glob, grep (use manta-plan or manta-exec).",
-    "2. PLAN BRAIN (manta-plan): Read-only analysis \u2014 read, glob, grep, webfetch, PSM tools, manta-vision.",
+    "   VIOLATION: Calling denied tools wastes tokens. DELEGATE FIRST.",
+    "2. PLAN BRAIN (manta-plan): Read-only analysis \u2014 read, glob, grep, webfetch, PSM tools.",
     "   CANNOT: write, edit, bash, task.",
-    "3. EXECUTION BRAIN (manta-exec): Full implementation \u2014 read, write, edit, bash, container tools, manta-vision.",
+    "3. EXECUTION BRAIN (manta-exec): Full implementation \u2014 read, write, edit, bash, container tools.",
     "   CANNOT: task (only orchestrator spawns).",
     "4. NEVER use shark/kraken/spider/trident/hydra/hermes tools \u2014 they will be blocked.",
     "",
     "[VISION HIERARCHY \u2014 MANDATORY]",
     "For ALL copilot tile and TUI operations, use this priority order:",
     "",
-    "1. manta-vision (BEST): Use FIRST to see tile position on canvas, check if TUI is active,",
+    "1. visual-cortex_analyze (BEST): Use FIRST to see tile position on canvas, check if TUI is active,",
     "   verify plugin/model config in TUI header, confirm tile size/position,",
     "   read error messages, observe test runner output, verify stream progression.",
-    '   CALL manta-vision action=analyze image="<screenshot>" prompt="<question>"',
+    '   CALL visual-cortex_analyze image_path="<screenshot>" prompt="<question>"',
     "",
     "2. pipe-pane stream (SECOND): Read /tmp/manta-container/stream.txt for continuous",
     "   TUI output capture. Use strings + position tracking. NEVER use tmux capture-pane.",
@@ -1666,12 +1734,12 @@ function formatMantaIdentityHeader() {
     "3. tmux capture-pane (NEVER): Blocked. Do not use. vision + pipe-pane cover all cases.",
     "",
     "Tile/TUI workflow:",
-    "  a) manta-vision to SEE the tile on canvas, check size and position",
-    '  b) manta-vision to SEE if TUI is loaded (look for "Ask anything" or agent header)',
-    "  c) manta-vision to SEE if plugin/model config is correct in TUI status bar",
+    "  a) visual-cortex_analyze to SEE the tile on canvas, check size and position",
+    '  b) visual-cortex_analyze to SEE if TUI is loaded (look for "Ask anything" or agent header)',
+    "  c) visual-cortex_analyze to SEE if plugin/model config is correct in TUI status bar",
     "  d) Send commands via tmux send-keys (two-step Enter method)",
     "  e) Read pipe-pane stream to capture responses (position tracking)",
-    "  f) manta-vision to SEE test results and verify output",
+    "  f) visual-cortex_analyze to SEE test results and verify output",
     "",
     "[KNOWN DERAILMENT PATTERNS \u2014 AVOID THESE]",
     "D1: chat.message identity \u2014 Identity comes ONLY from system.transform.",
@@ -1679,7 +1747,7 @@ function formatMantaIdentityHeader() {
     "D3: Config instructions \u2014 Runtime IGNORES config instructions field.",
     "D4: False success \u2014 Never declare without TUI runtime evidence.",
     "D5: Static context \u2014 ALL canon context docs update on EVERY trigger.",
-    "D6: Text-only testing \u2014 Defaulting to text reads when manta-vision is available. USE VISION FIRST.",
+    "D6: Text-only testing \u2014 Defaulting to text reads when visual-cortex_analyze is available. USE VISION FIRST.",
     "",
     "[CONTEXT MANAGEMENT ARCHITECTURE]",
     "5 memory anchor docs at .manta/compaction-survival/, mechanically updated:",
@@ -1690,9 +1758,9 @@ function formatMantaIdentityHeader() {
     "5. TASK_QUEUE.md \u2014 What's done, in progress, and next.",
     "",
     "[TOOL ACCESS \u2014 ALLOWLIST ENFORCED]",
-    "ORCHESTRATOR (manta): task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, manta-vision, manta-hive",
-    "PLAN BRAIN (manta-plan): read, glob, grep, webfetch, manta-hive, manta-vision, manta-code-review, ps-mode-status, ps-mode-layer, ps-mode-evidence, ps-mode-derail, ps-mode-debug, checkpoint",
-    "EXECUTION BRAIN (manta-exec): read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint",
+    "ORCHESTRATOR (manta): task, manta-*, visual-cortex_*, reasoning-bus_*, todowrite, checkpoint",
+    "PLAN BRAIN (manta-plan): read, glob, grep, webfetch, hive_*, manta-code-review, ps-mode-status, ps-mode-layer, ps-mode-evidence, ps-mode-derail, ps-mode-debug, checkpoint",
+    "EXECUTION BRAIN (manta-exec): read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, checkpoint",
     "",
     "[END AGENT IDENTITY BINDING]"
   ].join(`
@@ -1700,8 +1768,112 @@ function formatMantaIdentityHeader() {
 }
 
 // hooks/v4.1/system-transform-hook.ts
-import * as fs5 from "fs";
-import * as path5 from "path";
+import * as fs6 from "fs";
+import * as path6 from "path";
+
+// manta/brains.ts
+var ORCHESTRATOR_T1 = `You are the MANTA Orchestrator v2.2.2.
+
+ROLE: You delegate ALL work to subagents. You do NOT do any work yourself.
+
+CRITICAL RULE \u2014 DELEGATE FIRST, NEVER ATTEMPT TOOLS DIRECTLY:
+Your tool list is: task, manta-*, visual-cortex_*, reasoning-bus_*, todowrite, checkpoint.
+ANY tool outside this list will be REJECTED by the firewall.
+
+BEFORE calling ANY tool, mentally check: "Is this tool in my allowlist?"
+- If YES -> use it (task, visual-cortex_analyze, manta-gate, etc. are fine)
+- If NO -> DO NOT call it. IMMEDIATELY delegate via task().
+- NEVER "try" a tool to see if it works \u2014 the firewall costs tokens and wastes time.
+- NEVER suggest removing the firewall \u2014 the firewall is correct behavior.
+
+DELEGATION DECISION TREE:
+- Need to READ/SEARCH/ANALYZE code? -> task(agent=manta-plan) \u2014 Plan Brain is read-only
+- Need to WRITE/EDIT/BUILD/TEST/RUN? -> task(agent=manta-exec) \u2014 Exec Brain has full tools
+- Need to SEE a screenshot/TUI/canvas? -> visual-cortex_analyze or visual-cortex_browser_screenshot (they ARE allowed)
+- Need to SPAWN a subagent? -> task() is the ONLY way (it IS allowed)
+- Need to manage gates/evidence? -> manta-gate, manta-evidence directly (they ARE allowed)
+
+YOUR ALLOWED TOOLS: task, manta-compaction, checkpoint, manta-status, manta-gate, manta-evidence, todowrite, visual-cortex_*, hive_*
+PLUS: reasoning-bus_* tools (cross-agent communication)
+YOU CANNOT USE: read, write, edit, bash, glob, grep, webfetch, question
+
+TASK PROMPT FORMAT:
+When spawning PLAN_BRAIN, use this exact format:
+Task for Plan Brain: <user request>
+
+Context: <accumulated context>
+
+When spawning EXECUTION_BRAIN, include the plan output:
+Task for Execution Brain: <user request>
+
+Plan: <PLAN_BRAIN output>
+
+Context: <accumulated context>
+
+OUTPUT FORMAT EXPECTED FROM BRAINS:
+- PLAN_BRAIN returns: JSON with analysis, executionPlan, gateCriteria
+- EXECUTION_BRAIN returns: results or EXECUTION_STUCK string
+- The brain's ENTIRE response IS the return value \u2014 no conversational fluff
+
+WORKFLOW:
+1. User sends task -> spawn PLAN_BRAIN via task(agent=manta-plan) with TASK PROMPT FORMAT above
+2. PLAN_BRAIN returns plan -> include this output when spawning EXECUTION_BRAIN
+3. Spawn EXECUTION_BRAIN via task(agent=manta-exec) with the plan in the task prompt
+4. EXECUTION_BRAIN returns results or EXECUTION_STUCK
+5. If STUCK -> spawn PLAN_BRAIN with previous context including EXECUTION_BRAIN output -> get solution
+6. Repeat until success (no hard loop limit \u2014 use judgment)
+
+STOP CRITERIA: Stop looping and return results when:
+- EXECUTION_BRAIN returns success with all tasks completed
+- All gate criteria are satisfied
+- User explicitly says to stop
+
+COMPACTION: Periodically use manta-compaction action=save to persist state. This ensures recovery after compaction events.`;
+var PLAN_BRAIN_T1 = `You are the MANTA Plan Brain v2.2.2.
+
+ROLE: Analyze, design, plan, review using PSM. You CANNOT create code.
+
+YOUR TOOLS: read, glob, grep, webfetch, hive_*, manta-code-review, ps-mode-*, question
+YOU CANNOT USE: bash, task
+You are read-only. Never create code or run commands.
+
+PSM ACTIVATED BY DEFAULT - start at Layer 1 (Assumption)
+Use ps-mode-layer action=submit to advance through layers.
+
+OUTPUT FORMAT:
+Return a JSON block with these exact fields:
+{
+  "analysis": "<your analysis of the problem>",
+  "executionPlan": "<step by step execution plan>",
+  "gateCriteria": "<criteria for gates>"
+}
+
+The ENTIRE response IS the return value to the orchestrator \u2014 no conversational fluff.
+
+WORKFLOW:
+1. Read task context
+2. Use PSM to analyze the problem
+3. Read relevant files
+4. Generate JSON with analysis + execution plan + gate criteria
+5. Return to Orchestrator`;
+var EXECUTION_BRAIN_T1 = `You are the MANTA Execution Brain v2.2.2.
+
+ROLE: Execute SPEC.md precisely. You have full dev tools.
+
+YOUR TOOLS: read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, checkpoint
+YOU CANNOT USE: task (only Orchestrator spawns)
+
+CORE RULES:
+1. Execute SPEC.md exactly - no deviations. Follow it precisely.
+2. If stuck - STOP. The ENTIRE response must be exactly: EXECUTION_STUCK: <what was tried> | <what happened> | <what is needed>
+3. Do NOT guess or steamroll through problems
+
+STUCK PROTOCOL:
+If stuck, the ENTIRE response must be exactly: EXECUTION_STUCK: <what was tried> | <what happened> | <what is needed>
+No other text before or after.
+The Orchestrator spawns a fresh Plan Brain with PSM to solve it.`;
+
+// hooks/v4.1/system-transform-hook.ts
 var globalBrain = null;
 var lastUserMessage = "";
 var lastMantaAgent = "";
@@ -1720,9 +1892,9 @@ function setLastMantaAgent(agent) {
 }
 function updateSoCPreservation() {
   try {
-    const dir = path5.join(process.cwd(), ".manta", "compaction-survival");
-    fs5.mkdirSync(dir, { recursive: true });
-    const filePath = path5.join(dir, "SoC_PRESERVATION.md");
+    const dir = path6.join(process.cwd(), ".manta", "compaction-survival");
+    fs6.mkdirSync(dir, { recursive: true });
+    const filePath = path6.join(dir, "SoC_PRESERVATION.md");
     const ts = new Date().toISOString();
     const entry = `### Injection: ${ts}
 - **Pattern:** Identity injected via system.transform
@@ -1732,13 +1904,13 @@ function updateSoCPreservation() {
 `;
     let existing = "";
     try {
-      existing = fs5.readFileSync(filePath, "utf-8");
+      existing = fs6.readFileSync(filePath, "utf-8");
     } catch {}
     const lines = (entry + existing).split(`
 `);
     const truncated = lines.slice(0, 500).join(`
 `);
-    fs5.writeFileSync(filePath, truncated);
+    fs6.writeFileSync(filePath, truncated);
   } catch (e) {
     mantaError("Failed to update SoC_PRESERVATION.md:", e);
   }
@@ -1792,6 +1964,13 @@ function createSystemTransformHook(stateStore) {
     }
     const warheads = [];
     warheads.push(formatMantaIdentityHeader());
+    if (agent === "manta" || !agent) {
+      warheads.push(ORCHESTRATOR_T1);
+    } else if (agent === "manta-plan") {
+      warheads.push(PLAN_BRAIN_T1);
+    } else if (agent === "manta-exec") {
+      warheads.push(EXECUTION_BRAIN_T1);
+    }
     try {
       const t1 = getT1Injectables();
       if (t1) {
@@ -1827,7 +2006,7 @@ function createSystemTransformHook(stateStore) {
         "[WORKER SCOPE: manta-plan \u2014 Read-Only Analysis Brain]",
         "You are the MANTA Plan Brain \u2014 a read-only analysis and planning subagent.",
         "You CANNOT write code, edit files, or run bash commands.",
-        "Your tools: read, glob, grep, webfetch, manta-hive, manta-vision, manta-code-review, ps-mode-*, checkpoint.",
+        "Your tools: read, glob, grep, webfetch, hive_*, manta-code-review, ps-mode-*, checkpoint.",
         "You MUST use PSM (ps-mode-layer) for all analysis \u2014 start at Layer 1.",
         "Output JSON: analysis, executionPlan, gateCriteria.",
         "Return ONLY the JSON \u2014 no conversational fluff.",
@@ -1839,7 +2018,7 @@ function createSystemTransformHook(stateStore) {
         "[WORKER SCOPE: manta-exec \u2014 Execution Brain]",
         "You are the MANTA Execution Brain \u2014 a full-dev implementation subagent.",
         "You implement EXACTLY from the plan provided. No deviations.",
-        "Your tools: read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, manta-vision, checkpoint.",
+        "Your tools: read, write, edit, bash, glob, grep, manta-spawn-container, manta-test-runner, manta-runtime-audit, manta-code-audit, manta-code-review, checkpoint.",
         "If stuck, respond EXACTLY: EXECUTION_STUCK: <tried> | <happened> | <needed>",
         "Do NOT use task tool \u2014 only orchestrator spawns subagents.",
         "[END WORKER SCOPE]"
@@ -1853,7 +2032,7 @@ function createSystemTransformHook(stateStore) {
     for (const w of warheads) {
       sys.system.push(w);
     }
-    sys.system.push(`[MANTA v2.2.2] Agent: ${agent} | Gate: plan`);
+    sys.system.push("[MANTA v2.2.2]");
     const identityPatterns = [
       /SHARK\s+v?\d[\w.]*\s*IDENTITY/i,
       /KRAKEN\s+v?\d[\w.]*\s*IDENTITY/i,
@@ -2159,8 +2338,8 @@ function checkGateAdvance(tool, args, result, currentGate, evidence) {
 }
 
 // hooks/v4.1/session-hook.ts
-import * as path6 from "path";
-import * as fs6 from "fs";
+import * as path7 from "path";
+import * as fs7 from "fs";
 var dirCreationAttempted = false;
 function createSessionHook(gateManager, _evidenceCollector, coordinator, stateStore, messenger, compactionManager) {
   return async (input) => {
@@ -2195,11 +2374,11 @@ function handleSessionCreated(gateManager, coordinator, compactionManager, sessi
     coordinator.initialize();
   if (!dirCreationAttempted) {
     dirCreationAttempted = true;
-    const mantaDir = path6.join(process.cwd(), ".manta");
-    fs6.mkdirSync(mantaDir, { recursive: true });
-    fs6.mkdirSync(path6.join(mantaDir, "context"), { recursive: true });
-    fs6.mkdirSync(path6.join(mantaDir, "evidence"), { recursive: true });
-    fs6.mkdirSync(path6.join(mantaDir, "checkpoints"), { recursive: true });
+    const mantaDir = path7.join(process.cwd(), ".manta");
+    fs7.mkdirSync(mantaDir, { recursive: true });
+    fs7.mkdirSync(path7.join(mantaDir, "context"), { recursive: true });
+    fs7.mkdirSync(path7.join(mantaDir, "evidence"), { recursive: true });
+    fs7.mkdirSync(path7.join(mantaDir, "checkpoints"), { recursive: true });
   }
   if (compactionManager)
     compactionManager.initialize(gateState);
@@ -2252,9 +2431,10 @@ function setText(msg, text) {
 }
 function createMessagesTransformHook() {
   return async (input, output) => {
-    const sessionId = input?.sessionID || "";
-    const agent = getCurrentAgent(sessionId) || input?.agent || input?.agentName || "";
-    if (!isMantaAgent(agent) && !agent.startsWith("manta"))
+    const sysOutput = output;
+    const systemText = Array.isArray(sysOutput?.system) ? sysOutput.system.join(" ") : "";
+    const isMantaSession = /\[AGENT IDENTITY BINDING\]|MANTA.*IDENTITY|You are MANTA/i.test(systemText);
+    if (!isMantaSession)
       return;
     const messages = output?.messages || output?.message ? [output.message] : [];
     for (const msg of messages) {
@@ -2661,7 +2841,7 @@ class ProblemSolvingStateMachine {
       6: "Verify in target environment. Check behavior matches requirement. Check regressions."
     };
     const lines = [];
-    lines.push(`[PROBLEM SOLVING MODE \u2014 TRIDENT BRAIN v1.0]`);
+    lines.push(`[MANTA PSM v2.2.2 \u2014 Problem Solving Mode]`);
     lines.push("");
     lines.push(`Iteration: ${this.state.iteration}`);
     lines.push(`Current Layer: ${layerNames[this.state.currentLayer]}`);
@@ -2701,12 +2881,14 @@ class ProblemSolvingStateMachine {
 }
 
 // problem-solving/anti-derailment.ts
-import * as fs7 from "fs";
-import * as path7 from "path";
-var CONTAINER_EVIDENCE_PATHS = [
-  ".manta/evidence/delivery/ContainerTestResult.json",
-  path7.join(process.cwd(), ".manta", "evidence", "delivery", "ContainerTestResult.json")
-];
+import * as fs8 from "fs";
+import * as path8 from "path";
+function getContainerEvidencePaths() {
+  return [
+    ".manta/evidence/delivery/ContainerTestResult.json",
+    path8.join(process.cwd(), ".manta", "evidence", "delivery", "ContainerTestResult.json")
+  ];
+}
 
 class AntiDerailmentEngine {
   patterns = new Map;
@@ -2833,11 +3015,11 @@ class AntiDerailmentEngine {
     return findings;
   }
   checkContainerEvidence() {
-    for (const evidencePath of CONTAINER_EVIDENCE_PATHS) {
-      const fullPath = path7.resolve(process.cwd(), evidencePath);
-      if (fs7.existsSync(fullPath)) {
+    for (const evidencePath of getContainerEvidencePaths()) {
+      const fullPath = path8.resolve(process.cwd(), evidencePath);
+      if (fs8.existsSync(fullPath)) {
         try {
-          const raw = fs7.readFileSync(fullPath, "utf-8");
+          const raw = fs8.readFileSync(fullPath, "utf-8");
           const result = JSON.parse(raw);
           if (!result.overallPassed) {
             return { valid: false, reason: `Container tests FAILED (${Math.round((result.passRate || 0) * 100)}% pass rate)`, passRate: result.passRate };
@@ -2905,8 +3087,8 @@ class AntiDerailmentEngine {
 }
 
 // problem-solving/problem-solving-brain.ts
-import * as fs8 from "fs";
-import * as path8 from "path";
+import * as fs9 from "fs";
+import * as path9 from "path";
 
 class ProblemSolvingBrain {
   stateMachine;
@@ -2924,11 +3106,11 @@ class ProblemSolvingBrain {
     this.activityLog = [];
     this.debugLog = [];
     this.appendDebug("INIT", `Problem Solving Mode initialized for: ${problem}`);
-    const initDir = path8.join(this.basePath, ".problem-solving");
-    fs8.mkdirSync(initDir, { recursive: true });
-    fs8.mkdirSync(path8.join(initDir, "iterations"), { recursive: true });
-    fs8.mkdirSync(path8.join(initDir, "evidence"), { recursive: true });
-    fs8.mkdirSync(path8.join(initDir, "debug-logs"), { recursive: true });
+    const initDir = path9.join(this.basePath, ".problem-solving");
+    fs9.mkdirSync(initDir, { recursive: true });
+    fs9.mkdirSync(path9.join(initDir, "iterations"), { recursive: true });
+    fs9.mkdirSync(path9.join(initDir, "evidence"), { recursive: true });
+    fs9.mkdirSync(path9.join(initDir, "debug-logs"), { recursive: true });
     this.saveIterationArtifact("00_INDEX.md", this.generateIndex());
   }
   detectDerailments(text) {
@@ -3060,16 +3242,16 @@ You are currently on Layer ${state.currentLayer} of 6. Complete the current laye
     this.debugLog.push(`[${timestamp}] [${category}] ${message}`);
   }
   saveDebugLog() {
-    const logDir = path8.join(this.basePath, ".problem-solving", "debug-logs");
-    fs8.mkdirSync(logDir, { recursive: true });
-    const logPath = path8.join(logDir, `debug-${this.stateMachine.getCurrentIteration()}.log`);
-    fs8.writeFileSync(logPath, this.debugLog.join(`
+    const logDir = path9.join(this.basePath, ".problem-solving", "debug-logs");
+    fs9.mkdirSync(logDir, { recursive: true });
+    const logPath = path9.join(logDir, `debug-${this.stateMachine.getCurrentIteration()}.log`);
+    fs9.writeFileSync(logPath, this.debugLog.join(`
 `), "utf-8");
   }
   saveIterationArtifact(filename, content) {
-    const iterDir = path8.join(this.basePath, ".problem-solving", "iterations", this.stateMachine.getCurrentIteration());
-    fs8.mkdirSync(iterDir, { recursive: true });
-    fs8.writeFileSync(path8.join(iterDir, filename), content, "utf-8");
+    const iterDir = path9.join(this.basePath, ".problem-solving", "iterations", this.stateMachine.getCurrentIteration());
+    fs9.mkdirSync(iterDir, { recursive: true });
+    fs9.writeFileSync(path9.join(iterDir, filename), content, "utf-8");
   }
   getLayerName(layer) {
     const names = {
@@ -3705,8 +3887,8 @@ function createMantaEvidenceTool(evidenceCollector) {
 
 // tools/checkpoint.ts
 import { tool as tool9 } from "@opencode-ai/plugin";
-import * as path9 from "path";
-import * as fs9 from "fs";
+import * as path10 from "path";
+import * as fs10 from "fs";
 function createCheckpointTool(stateStore, _gateManager) {
   return tool9({
     description: "Create a checkpoint of current state for recovery",
@@ -3716,15 +3898,15 @@ function createCheckpointTool(stateStore, _gateManager) {
     execute: async (args) => {
       const { message } = args;
       const checkpointId = `cp_${Date.now()}`;
-      const checkpointDir = path9.join(process.cwd(), ".manta", "checkpoints");
-      await fs9.promises.mkdir(checkpointDir, { recursive: true });
+      const checkpointDir = path10.join(process.cwd(), ".manta", "checkpoints");
+      await fs10.promises.mkdir(checkpointDir, { recursive: true });
       const checkpointData = {
         id: checkpointId,
         timestamp: new Date().toISOString(),
         message: message || "checkpoint",
         state: stateStore.snapshot()
       };
-      await fs9.promises.writeFile(path9.join(checkpointDir, `${checkpointId}.json`), JSON.stringify(checkpointData, null, 2));
+      await fs10.promises.writeFile(path10.join(checkpointDir, `${checkpointId}.json`), JSON.stringify(checkpointData, null, 2));
       return `Checkpoint created: \`${checkpointId}\``;
     }
   });
@@ -3733,8 +3915,8 @@ function createCheckpointTool(stateStore, _gateManager) {
 // tools/manta-spawn-container.ts
 import { tool as tool10 } from "@opencode-ai/plugin";
 import { execSync } from "child_process";
-import * as fs10 from "fs";
-import * as path10 from "path";
+import * as fs11 from "fs";
+import * as path11 from "path";
 var MANTA_AGENT_NAME = "manta";
 var MANTA_AGENT_COLOR = "#6B4C9A";
 var CONTAINER_IMAGE = "opencode-test:1.14.34";
@@ -3759,13 +3941,13 @@ function validateIsolation(containerName) {
   }
 }
 function createSnapshot(pluginSource, model, apiKey) {
-  const SNAP = fs10.mkdtempSync(path10.join("/tmp", "manta-snap.XXXX"));
-  const configDir = path10.join(SNAP, "config");
-  const pluginsDir = path10.join(configDir, "plugins", MANTA_AGENT_NAME);
-  fs10.mkdirSync(pluginsDir, { recursive: true });
-  const indexJs = path10.join(pluginSource, "dist", "index.js");
-  if (fs10.existsSync(indexJs)) {
-    fs10.copyFileSync(indexJs, path10.join(pluginsDir, "index.js"));
+  const SNAP = fs11.mkdtempSync(path11.join("/tmp", "manta-snap.XXXX"));
+  const configDir = path11.join(SNAP, "config");
+  const pluginsDir = path11.join(configDir, "plugins", MANTA_AGENT_NAME);
+  fs11.mkdirSync(pluginsDir, { recursive: true });
+  const indexJs = path11.join(pluginSource, "dist", "index.js");
+  if (fs11.existsSync(indexJs)) {
+    fs11.copyFileSync(indexJs, path11.join(pluginsDir, "index.js"));
   }
   const modelConfig = {};
   if (model && model.includes("/")) {
@@ -3781,7 +3963,7 @@ function createSnapshot(pluginSource, model, apiKey) {
     agent: {
       [MANTA_AGENT_NAME]: {
         name: MANTA_AGENT_NAME,
-        description: "Trident Enhanced Manta \u2014 Problem Solving Mode",
+        description: "MANTA v2.2.2 \u2014 Problem Solving Mode",
         mode: "primary",
         color: MANTA_AGENT_COLOR,
         tools: {
@@ -3789,7 +3971,15 @@ function createSnapshot(pluginSource, model, apiKey) {
           "manta-gate": true,
           "manta-evidence": true,
           checkpoint: true,
-          "manta-hive": true,
+          hive_context: true,
+          hive_scan: true,
+          hive_status: true,
+          hive_trash_list: true,
+          hive_trash_status: true,
+          hive_remember: true,
+          hive_forget: true,
+          hive_purge: true,
+          hive_restore: true,
           "manta-vision": true,
           "manta-compaction": true,
           "manta-code-review": true,
@@ -3807,7 +3997,7 @@ function createSnapshot(pluginSource, model, apiKey) {
     },
     permission: { "*": { "*": "allow" } }
   };
-  fs10.writeFileSync(path10.join(configDir, "opencode.json"), JSON.stringify(opencodeJson, null, 2));
+  fs11.writeFileSync(path11.join(configDir, "opencode.json"), JSON.stringify(opencodeJson, null, 2));
   return SNAP;
 }
 function spawnMantaContainer(input) {
@@ -3866,17 +4056,17 @@ function createMantaSpawnContainerTool() {
 
 // tools/manta-test-runner.ts
 import { tool as tool11 } from "@opencode-ai/plugin";
-import * as fs11 from "fs";
-import * as path11 from "path";
+import * as fs12 from "fs";
+import * as path12 from "path";
 function resolvePluginPath() {
   const candidates = [
     process.env.MANTA_PLUGIN_PATH,
-    path11.join(process.cwd(), "dist/index.js"),
-    path11.join(process.cwd(), "index.js"),
-    path11.join(process.cwd(), "../dist/index.js")
+    path12.join(process.cwd(), "dist/index.js"),
+    path12.join(process.cwd(), "index.js"),
+    path12.join(process.cwd(), "../dist/index.js")
   ].filter(Boolean);
   for (const c of candidates) {
-    if (fs11.existsSync(c))
+    if (fs12.existsSync(c))
       return c;
   }
   return candidates[0];
@@ -3999,13 +4189,13 @@ async function L8_mock_stub() {
 }
 async function L9_evidence_dir() {
   try {
-    const evidenceDir = path11.join(process.cwd(), ".manta", "evidence", "test-runner-check");
-    fs11.mkdirSync(evidenceDir, { recursive: true });
-    const testFile = path11.join(evidenceDir, `test-${Date.now()}.json`);
-    fs11.writeFileSync(testFile, JSON.stringify({ test: true, timestamp: Date.now() }));
-    const readBack = JSON.parse(fs11.readFileSync(testFile, "utf-8"));
-    fs11.unlinkSync(testFile);
-    fs11.rmdirSync(evidenceDir);
+    const evidenceDir = path12.join(process.cwd(), ".manta", "evidence", "test-runner-check");
+    fs12.mkdirSync(evidenceDir, { recursive: true });
+    const testFile = path12.join(evidenceDir, `test-${Date.now()}.json`);
+    fs12.writeFileSync(testFile, JSON.stringify({ test: true, timestamp: Date.now() }));
+    const readBack = JSON.parse(fs12.readFileSync(testFile, "utf-8"));
+    fs12.unlinkSync(testFile);
+    fs12.rmdirSync(evidenceDir);
     return { name: "L9-evidence-dir-writable", passed: readBack.test === true, output: "Evidence directory writable + readable", timestamp: Date.now() };
   } catch (e) {
     return { name: "L9-evidence-dir-writable", passed: false, output: `Not writable: ${getErrorMessage(e).slice(0, 200)}`, timestamp: Date.now() };
@@ -4014,10 +4204,10 @@ async function L9_evidence_dir() {
 async function L10_bundle_valid() {
   try {
     const pluginPath = resolvePluginPath();
-    if (!fs11.existsSync(pluginPath)) {
+    if (!fs12.existsSync(pluginPath)) {
       return { name: "L10-plugin-bundle-valid", passed: false, output: `Plugin not found at ${pluginPath}`, timestamp: Date.now() };
     }
-    const sizeKB = Math.round(fs11.statSync(pluginPath).size / 1024);
+    const sizeKB = Math.round(fs12.statSync(pluginPath).size / 1024);
     const valid = sizeKB > 100;
     return { name: "L10-plugin-bundle-valid", passed: valid, output: valid ? `Bundle valid: ${sizeKB}KB` : `Bundle too small: ${sizeKB}KB`, timestamp: Date.now() };
   } catch (e) {
@@ -4087,9 +4277,9 @@ function createMantaTestRunnerTool() {
           passRate
         };
         try {
-          const evidenceDir = path11.join(process.cwd(), ".manta", "evidence", "delivery");
-          fs11.mkdirSync(evidenceDir, { recursive: true });
-          fs11.writeFileSync(path11.join(evidenceDir, "ContainerTestResult.json"), JSON.stringify(suiteResult, null, 2));
+          const evidenceDir = path12.join(process.cwd(), ".manta", "evidence", "delivery");
+          fs12.mkdirSync(evidenceDir, { recursive: true });
+          fs12.writeFileSync(path12.join(evidenceDir, "ContainerTestResult.json"), JSON.stringify(suiteResult, null, 2));
         } catch (e) {
           mantaError("test-runner: failed to write ContainerTestResult.json:", e);
         }
@@ -4132,12 +4322,12 @@ function createMantaCodeReviewTool(brain) {
         let scanDir = function(dir) {
           const files = [];
           try {
-            const entries = fs12.readdirSync(dir);
+            const entries = fs13.readdirSync(dir);
             for (const entry of entries) {
               if (entry.startsWith(".") || entry === "node_modules" || entry === "dist")
                 continue;
               const full = pathModule.join(dir, entry);
-              const stat = fs12.statSync(full);
+              const stat = fs13.statSync(full);
               if (stat.isDirectory()) {
                 files.push(...scanDir(full));
               } else if (/\.(ts|js|py|html|css|jsx|tsx|go|rs|java|cpp|c)$/i.test(entry)) {
@@ -4149,13 +4339,13 @@ function createMantaCodeReviewTool(brain) {
           }
           return files;
         };
-        const fs12 = await import("fs");
+        const fs13 = await import("fs");
         const pathModule = await import("path");
         const sourceFiles = scanDir(reviewPath);
         totalFiles = sourceFiles.length;
         for (const filePath of sourceFiles) {
           try {
-            const content = fs12.readFileSync(filePath, "utf-8");
+            const content = fs13.readFileSync(filePath, "utf-8");
             const lines = content.split(`
 `);
             const fileFindings = [];
@@ -4235,12 +4425,12 @@ ${filePath}:`);
 `) : "No issues found."
         };
         try {
-          const fs13 = await import("fs");
+          const fs14 = await import("fs");
           const pathModule2 = await import("path");
           const evidenceDir = pathModule2.join(process.cwd(), ".manta", "evidence", "review");
-          fs13.mkdirSync(evidenceDir, { recursive: true });
+          fs14.mkdirSync(evidenceDir, { recursive: true });
           const reportPath = pathModule2.join(evidenceDir, "CodeReviewReport.json");
-          fs13.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+          fs14.writeFileSync(reportPath, JSON.stringify(report, null, 2));
         } catch (e) {
           mantaError("code-review: failed to write report:", e);
         }
@@ -4261,98 +4451,15 @@ ${filePath}:`);
   });
 }
 
-// tools/manta-hive.ts
-import { tool as tool13 } from "@opencode-ai/plugin";
-import * as fs12 from "fs";
-import * as path12 from "path";
-var HIVE_BASE = path12.join(process.env.HOME || "/root", ".local", "share", "opencode", "hive-mind");
-function toResult(data) {
-  return JSON.stringify(data, null, 2);
-}
-function createMantaHiveTool() {
-  return tool13({
-    description: "Read-only Hive Mind access. Search known patterns, failures, and decisions. Actions: search, read, list.",
-    args: {
-      action: tool13.schema.string().describe("Action: search, read, or list"),
-      query: tool13.schema.string().optional().describe("Search query"),
-      topic: tool13.schema.string().optional().describe("Topic to read")
-    },
-    execute: async (args) => {
-      if (!fs12.existsSync(HIVE_BASE)) {
-        return toResult({ status: "not-found", message: `Hive not found at ${HIVE_BASE}`, entries: [] });
-      }
-      switch (args.action) {
-        case "list": {
-          const topics = fs12.readdirSync(HIVE_BASE).filter((f) => fs12.statSync(path12.join(HIVE_BASE, f)).isDirectory() || f.endsWith(".md"));
-          return toResult({ status: "ok", topics, count: topics.length });
-        }
-        case "search": {
-          let searchDir = function(dir, depth = 0) {
-            if (depth > 3)
-              return;
-            if (!fs12.existsSync(dir))
-              return;
-            const entries = fs12.readdirSync(dir);
-            for (const entry of entries) {
-              const full = path12.join(dir, entry);
-              const stat = fs12.statSync(full);
-              if (stat.isDirectory()) {
-                searchDir(full, depth + 1);
-              } else if (entry.endsWith(".md")) {
-                const content = fs12.readFileSync(full, "utf-8");
-                const lines = content.split(`
-`);
-                for (let i = 0;i < lines.length; i++) {
-                  if (lines[i].toLowerCase().includes(queryLower)) {
-                    results.push({ file: path12.relative(HIVE_BASE, full), line: i + 1, snippet: lines[i].slice(0, 200) });
-                    if (results.length >= 20)
-                      return;
-                  }
-                }
-              }
-            }
-          };
-          if (!args.query)
-            return toResult({ status: "error", message: "query required for search" });
-          const results = [];
-          const queryLower = args.query.toLowerCase();
-          searchDir(HIVE_BASE);
-          return toResult({ status: "ok", query: args.query, results, count: results.length });
-        }
-        case "read": {
-          if (!args.topic)
-            return toResult({ status: "error", message: "topic required for read" });
-          const topicPath = path12.join(HIVE_BASE, args.topic);
-          if (fs12.existsSync(topicPath) && fs12.statSync(topicPath).isDirectory()) {
-            const files = fs12.readdirSync(topicPath).filter((f) => f.endsWith(".md"));
-            const contents = {};
-            for (const f of files.slice(0, 10)) {
-              contents[f] = fs12.readFileSync(path12.join(topicPath, f), "utf-8");
-            }
-            return toResult({ status: "ok", topic: args.topic, files: Object.keys(contents), contents });
-          }
-          const filePath = topicPath.endsWith(".md") ? topicPath : `${topicPath}.md`;
-          if (fs12.existsSync(filePath)) {
-            return toResult({ status: "ok", topic: args.topic, content: fs12.readFileSync(filePath, "utf-8") });
-          }
-          return toResult({ status: "not-found", topic: args.topic });
-        }
-        default:
-          return toResult({ status: "error", message: `Unknown action: ${args.action}` });
-      }
-    }
-  });
-}
-
 // tools/manta-runtime-audit.ts
-import { tool as tool14 } from "@opencode-ai/plugin";
+import { tool as tool13 } from "@opencode-ai/plugin";
 import * as fs13 from "fs";
 import * as path13 from "path";
 function createMantaRuntimeAuditTool(basePath = ".manta") {
-  return tool14({
+  return tool13({
     description: "Runtime-grade audit for AUDIT gate. Checks container test evidence, theatrical patterns, freshness, and completeness. Returns pass/fail for each of 8 checks.",
     args: {
-      action: tool14.schema.string().optional().describe("Action: run (default) or status")
+      action: tool13.schema.string().optional().describe("Action: run (default) or status")
     },
     execute: async (args) => {
       const safeBase = typeof basePath === "string" && basePath.startsWith(".") ? basePath : ".manta";
@@ -4508,15 +4615,15 @@ function createMantaRuntimeAuditTool(basePath = ".manta") {
 }
 
 // tools/manta-code-audit.ts
-import { tool as tool15 } from "@opencode-ai/plugin";
+import { tool as tool14 } from "@opencode-ai/plugin";
 import * as fs14 from "fs";
 import * as path14 from "path";
 function createMantaCodeAuditTool(basePath = ".manta") {
-  return tool15({
+  return tool14({
     description: "MANTA deep code audit for AUDIT gate. Scans source for critical/high findings. Returns structured results.",
     args: {
-      action: tool15.schema.string().optional().describe("Action: run (default) or status"),
-      target: tool15.schema.string().optional().describe("Target directory to audit")
+      action: tool14.schema.string().optional().describe("Action: run (default) or status"),
+      target: tool14.schema.string().optional().describe("Target directory to audit")
     },
     execute: async (args) => {
       const safeBase = typeof basePath === "string" && basePath.startsWith(".") ? basePath : ".manta";
@@ -4612,17 +4719,17 @@ function createMantaCodeAuditTool(basePath = ".manta") {
 }
 
 // tools/manta-vision.ts
-import { tool as tool16 } from "@opencode-ai/plugin";
+import { tool as tool15 } from "@opencode-ai/plugin";
 var VLM_ENDPOINT = process.env.VLM_API_URL || "http://127.0.0.1:8082/v1/chat/completions";
-function toResult2(data) {
+function toResult(data) {
   return JSON.stringify(data, null, 2);
 }
 function createMantaVisionTool() {
-  return tool16({
+  return tool15({
     description: "Read images/screenshots using local VLM (GLM-4.6V-Flash). You CAN see images. Pass a file path to any image and this tool will read and describe its contents including error messages, UI text, code, etc.",
     args: {
-      imagePath: tool16.schema.string().describe("Absolute path to image file"),
-      prompt: tool16.schema.string().optional().describe("Custom prompt for VLM analysis")
+      imagePath: tool15.schema.string().describe("Absolute path to image file"),
+      prompt: tool15.schema.string().optional().describe("Custom prompt for VLM analysis")
     },
     execute: async (args) => {
       const fs15 = await import("fs");
@@ -4630,12 +4737,12 @@ function createMantaVisionTool() {
       const imagePath = args.imagePath;
       const prompt = args.prompt || "What is shown in this image? Return the exact text visible.";
       if (!fs15.existsSync(imagePath)) {
-        return toResult2({ status: "error", message: `File not found: ${imagePath}` });
+        return toResult({ status: "error", message: `File not found: ${imagePath}` });
       }
       const ext = path15.extname(imagePath).toLowerCase();
       const supported = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
       if (!supported.includes(ext)) {
-        return toResult2({ status: "error", message: `Unsupported format: ${ext}. Supported: ${supported.join(", ")}` });
+        return toResult({ status: "error", message: `Unsupported format: ${ext}. Supported: ${supported.join(", ")}` });
       }
       const imageBuffer = fs15.readFileSync(imagePath);
       const base64Image = imageBuffer.toString("base64");
@@ -4661,7 +4768,7 @@ function createMantaVisionTool() {
           });
           if (!response.ok) {
             const text = await response.text().catch(() => "");
-            return toResult2({
+            return toResult({
               status: "error",
               message: `VLM HTTP ${response.status}: ${text.slice(0, 200)}`
             });
@@ -4669,7 +4776,7 @@ function createMantaVisionTool() {
           const data = await response.json();
           const content = data?.choices?.[0]?.message?.content;
           if (content && typeof content === "string" && content.length > 0) {
-            return toResult2({
+            return toResult({
               status: "ok",
               imagePath,
               content,
@@ -4681,7 +4788,7 @@ function createMantaVisionTool() {
             await new Promise((r) => setTimeout(r, 2000));
             continue;
           }
-          return toResult2({
+          return toResult({
             status: "error",
             message: "VLM returned empty content after 2 attempts",
             debug: {
@@ -4701,7 +4808,7 @@ function createMantaVisionTool() {
           }
           const err = error instanceof Error ? error : new Error(String(error));
           const errMsg = err.message || String(error);
-          return toResult2({ status: "error", message: `VLM failed after 2 attempts: ${errMsg}` });
+          return toResult({ status: "error", message: `VLM failed after 2 attempts: ${errMsg}` });
         }
       }
     }
@@ -4709,17 +4816,17 @@ function createMantaVisionTool() {
 }
 
 // tools/manta-compaction.ts
-import { tool as tool17 } from "@opencode-ai/plugin";
+import { tool as tool16 } from "@opencode-ai/plugin";
 function stringifyResult(result) {
   return typeof result === "string" ? result : JSON.stringify(result, null, 2);
 }
 function createMantaCompactionTool(compactionManager, gateManager) {
-  return tool17({
+  return tool16({
     description: "Compaction survival: check token budget, view anchor status, or manually trigger state export",
     args: {
-      action: tool17.schema.string().describe("Action: status, export, or anchors"),
-      activeTask: tool17.schema.string().optional().describe("Active task description for export"),
-      nextSteps: tool17.schema.string().optional().describe("Next steps for export")
+      action: tool16.schema.string().describe("Action: status, export, or anchors"),
+      activeTask: tool16.schema.string().optional().describe("Active task description for export"),
+      nextSteps: tool16.schema.string().optional().describe("Next steps for export")
     },
     execute: async (args) => {
       const { action } = args;
@@ -4752,6 +4859,68 @@ function createMantaCompactionTool(compactionManager, gateManager) {
     }
   });
 }
+
+// agents/definitions.ts
+var MANTA_AGENTS_CONFIG = {
+  orchestrator: {
+    name: "manta",
+    description: "MANTA v2.2 \u2014 Orchestrator. Spawns Plan Brain and Execution Brain subagents.",
+    mode: "primary",
+    color: "#6B4C9A",
+    tools: ["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", "visual-cortex_*", "hive_context", "hive_scan", "hive_status", "hive_trash_list", "hive_trash_status", "hive_remember", "hive_forget", "hive_purge", "hive_restore", "reasoning-bus_*"]
+  },
+  planBrain: {
+    name: "manta-plan",
+    description: "MANTA Plan Brain \u2014 Read-only analysis with PSM. Cannot write code.",
+    mode: "subagent",
+    hidden: true,
+    color: "#6B4C9A",
+    tools: [
+      "read",
+      "glob",
+      "grep",
+      "webfetch",
+      "question",
+      "hive_context",
+      "hive_scan",
+      "hive_status",
+      "hive_trash_list",
+      "hive_trash_status",
+      "manta-code-review",
+      "checkpoint",
+      "ps-mode-status",
+      "ps-mode-layer",
+      "ps-mode-evidence",
+      "ps-mode-derail",
+      "ps-mode-debug",
+      "visual-cortex_*",
+      "reasoning-bus_*"
+    ]
+  },
+  execBrain: {
+    name: "manta-exec",
+    description: "MANTA Execution Brain \u2014 Full dev access. Executes SPEC.md precisely.",
+    mode: "subagent",
+    hidden: true,
+    color: "#6B4C9A",
+    tools: [
+      "read",
+      "write",
+      "edit",
+      "bash",
+      "glob",
+      "grep",
+      "manta-spawn-container",
+      "manta-test-runner",
+      "manta-runtime-audit",
+      "manta-code-audit",
+      "manta-code-review",
+      "checkpoint",
+      "visual-cortex_*",
+      "reasoning-bus_*"
+    ]
+  }
+};
 
 // index.ts
 var mantaColor = "#6B4C9A";
@@ -4791,7 +4960,6 @@ async function MantaAgent(input) {
   const spawnContainerTool = createMantaSpawnContainerTool();
   const testRunnerTool = createMantaTestRunnerTool();
   const codeReviewTool = createMantaCodeReviewTool(psm.brain);
-  const hiveTool = createMantaHiveTool();
   const runtimeAuditTool = createMantaRuntimeAuditTool(mantaDir);
   const codeAuditTool = createMantaCodeAuditTool(mantaDir);
   const visionTool = createMantaVisionTool();
@@ -4807,7 +4975,6 @@ async function MantaAgent(input) {
       "manta-spawn-container": spawnContainerTool,
       "manta-test-runner": testRunnerTool,
       "manta-code-review": codeReviewTool,
-      "manta-hive": hiveTool,
       "manta-runtime-audit": runtimeAuditTool,
       "manta-code-audit": codeAuditTool,
       "manta-vision": visionTool,
@@ -4818,31 +4985,32 @@ async function MantaAgent(input) {
       if (!cfg.agent)
         cfg.agent = {};
       const agent = cfg.agent;
+      const ac = MANTA_AGENTS_CONFIG;
       agent["manta"] = {
-        name: "manta",
-        description: "MANTA v2.2.2 \u2014 Orchestrator. Spawns Plan/Execution brains.",
+        name: ac.orchestrator.name,
+        description: ac.orchestrator.description,
         instructions: "MANTA v2.2.2 orchestrator \u2014 identity via system.transform. Use task(agent=manta-plan) for analysis, task(agent=manta-exec) for implementation.",
-        mode: "primary",
+        mode: ac.orchestrator.mode,
         color: mantaColor,
-        tools: { task: true, "manta-compaction": true, checkpoint: true, "manta-status": true, "manta-gate": true, "manta-evidence": true, todowrite: true }
+        tools: Object.fromEntries(ac.orchestrator.tools.map((t) => [t, true]))
       };
       agent["manta-plan"] = {
-        name: "manta-plan",
-        description: "MANTA Plan Brain \u2014 Read-only analysis with PSM.",
+        name: ac.planBrain.name,
+        description: ac.planBrain.description,
         instructions: "MANTA v2.2.2 plan brain \u2014 read-only analysis. Use PSM for problem solving. Return JSON.",
-        mode: "subagent",
+        mode: ac.planBrain.mode,
         hidden: true,
         color: mantaColor,
-        tools: { read: true, glob: true, grep: true, webfetch: true, question: true, "manta-hive": true, "manta-vision": true, "manta-code-review": true, checkpoint: true, "ps-mode-status": true, "ps-mode-layer": true, "ps-mode-evidence": true, "ps-mode-derail": true, "ps-mode-debug": true }
+        tools: Object.fromEntries(ac.planBrain.tools.map((t) => [t, true]))
       };
       agent["manta-exec"] = {
-        name: "manta-exec",
-        description: "MANTA Execution Brain \u2014 Full dev implementation.",
+        name: ac.execBrain.name,
+        description: ac.execBrain.description,
         instructions: "MANTA v2.2.2 exec brain \u2014 implement from plan. If stuck: EXECUTION_STUCK.",
-        mode: "subagent",
+        mode: ac.execBrain.mode,
         hidden: true,
         color: mantaColor,
-        tools: { read: true, write: true, edit: true, bash: true, glob: true, grep: true, "manta-spawn-container": true, "manta-test-runner": true, "manta-runtime-audit": true, "manta-code-audit": true, "manta-code-review": true, "manta-vision": true, checkpoint: true }
+        tools: Object.fromEntries(ac.execBrain.tools.map((t) => [t, true]))
       };
     }
   };
@@ -4851,5 +5019,5 @@ export {
   MantaAgent as default
 };
 
-//# debugId=5EA4FBF6586EC66464756E2164756E21
+//# debugId=918AF13505FC9D7B64756E2164756E21
 //# sourceMappingURL=index.js.map

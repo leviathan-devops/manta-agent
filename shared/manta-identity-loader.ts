@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mantaError } from './manta-logger.js';
 
-const IDENTITY_FILES = ['MANTA.md', 'IDENTITY.md', 'EXECUTION.md', 'QUALITY.md', 'TOOLS.md', 'FIREWALL_CONTEXT.md', 'WORKFLOW.md'];
+const IDENTITY_FILES = ['MANTA.md', 'IDENTITY.md', 'EXECUTION.md', 'QUALITY.md', 'TOOLS.md', 'FIREWALL_CONTEXT.md', 'WORKFLOW.md', 'ARCHITECTURE.md'];
 
 let pluginDir: string | null = null;
 let cachedIdentity: MantaIdentity | null = null;
@@ -17,6 +17,7 @@ export interface MantaIdentity {
   TOOLS: string;
   FIREWALL_CONTEXT: string;
   WORKFLOW: string;
+  ARCHITECTURE: string;
 }
 
 export function setPluginDirectory(dir: string): void {
@@ -48,7 +49,7 @@ export function loadMantaIdentity(): MantaIdentity | null {
     if (fs.existsSync(fullPath)) {
       const identity: MantaIdentity = {
         MANTA: '', IDENTITY: '', EXECUTION: '', QUALITY: '',
-        TOOLS: '', FIREWALL_CONTEXT: '', WORKFLOW: '',
+        TOOLS: '', FIREWALL_CONTEXT: '', WORKFLOW: '', ARCHITECTURE: '',
       };
       let loadedCount = 0;
       for (const file of IDENTITY_FILES) {

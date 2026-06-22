@@ -8,10 +8,12 @@ import {
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const CONTAINER_EVIDENCE_PATHS = [
-  '.manta/evidence/delivery/ContainerTestResult.json',
-  path.join(process.cwd(), '.manta', 'evidence', 'delivery', 'ContainerTestResult.json'),
-];
+function getContainerEvidencePaths(): string[] {
+  return [
+    '.manta/evidence/delivery/ContainerTestResult.json',
+    path.join(process.cwd(), '.manta', 'evidence', 'delivery', 'ContainerTestResult.json'),
+  ];
+}
 
 export class AntiDerailmentEngine {
   private patterns: Map<DerailmentType, RegExp[]> = new Map();
@@ -144,7 +146,7 @@ export class AntiDerailmentEngine {
   }
 
   checkContainerEvidence(): { valid: boolean; reason?: string; passRate?: number } {
-    for (const evidencePath of CONTAINER_EVIDENCE_PATHS) {
+    for (const evidencePath of getContainerEvidencePaths()) {
       const fullPath = path.resolve(process.cwd(), evidencePath);
       if (fs.existsSync(fullPath)) {
         try {

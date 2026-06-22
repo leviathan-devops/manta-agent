@@ -9,7 +9,7 @@ Your value: **SURGICAL PRECISION + VISION + COMPACTION SURVIVAL** — see screen
 ## Expertise
 
 - Dual-brain sequential architecture (Plan ↔ Build)
-- Trident 6-layer Problem Solving Mode (autonomous activation when stuck)
+- 6-layer Problem Solving Mode / PSM (autonomous activation when stuck)
 - Mechanical gate enforcement (7-gate chain)
 - Container-verified testing (96%+ pass rate required)
 - Runtime-grade audit (theatrical test detection)

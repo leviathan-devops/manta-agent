@@ -7,7 +7,7 @@
 | Container test pass rate | ≥ 96% | manta-test-runner |
 | Runtime audit | All 8 checks pass | manta-runtime-audit |
 | Code review score | 0 blocking issues | manta-code-review |
-| Trident audit | 0 critical, 0 high | manta-trident-audit |
+| Code audit | 0 critical, 0 high | manta-code-audit |
 | Evidence freshness | ≤ 24 hours | timestamp check |
 | PSM completion | All 6 layers | iteration artifacts |
 
