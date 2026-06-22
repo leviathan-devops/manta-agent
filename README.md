@@ -2,30 +2,40 @@
 
 > **M**ain **A**gent **N**ever **T**ouches **A**nything
 
-**MANTA** (Modular Agent for Navigated Task Architecture) is a dual-brain sequential precision engineering agent built on the opencode plugin system. It implements a **Triangle Architecture**: an orchestrator delegates to a read-only Plan Brain for analysis and a full-access Execution Brain for implementation, with mechanical enforcement through guardian tool allowlists, a 7-stage gate pipeline, and container-runtime verification.
+**MANTA** (Main Agent Never Touches Anything) is a dual-brain sequential precision engineering agent built on the opencode plugin system. It implements a **Triangle Architecture**: an orchestrator delegates to a read-only Plan Brain for analysis and a full-access Execution Brain for implementation, with mechanical enforcement through guardian tool allowlists, a 7-stage gate pipeline, and container-runtime verification.
 
-### Agent Architecture Overview
-
-**Orchestrator (manta)** — Coordination hub
-- Tools: `task`, `manta-compaction`, `checkpoint`, `manta-status`, `manta-gate`, `manta-evidence`, `visual-cortex_*` (34), `reasoning-bus_*` (6), `hive_*` (9)
-- Role: Spawns subagents, tracks gates, manages state, vision, reasoning bus, hive mind
-
-**7-Stage Gate Pipeline**
-```text
-PLAN → BUILD → REVIEW → VERIFY → TEST → AUDIT → DELIVERY
 ```
-- Sequential enforcement — no skipping
-- 3-attempt verify loop with auto-escalation
-
-**Plan Brain (manta-plan)** — Read-only analysis
-- Tools: `read`, `glob`, `grep`, `webfetch`, `hive_*` (5 read-only), `manta-code-review`, `checkpoint`, `ps-mode-*`, `visual-cortex_*` (34), `reasoning-bus_*` (6)
-- Cannot: `write`, `edit`, `bash`, `task`
-- Role: Analysis, planning, PSM layer progression, code review
-
-**Exec Brain (manta-exec)** — Full implementation
-- Tools: `read`, `write`, `edit`, `bash`, `glob`, `grep`, `manta-spawn-container`, `manta-test-runner`, `manta-runtime-audit`, `manta-code-audit`, `manta-code-review`, `checkpoint`, `visual-cortex_*` (34), `reasoning-bus_*` (6)
-- Cannot: `task`
-- Role: Implementation, build, test, container ops, audit
+                    ┌─────────────────────────────────────┐
+                    │         MANTA v2.2.2                 │
+                    │         (Orchestrator)               │
+                    │  task, gate, status, evidence,       │
+                    │  compaction, checkpoint,             │
+                    │  visual-cortex_* (34),               │
+                    │  reasoning-bus_* (6), hive_* (9)     │
+                    │                                      │
+                    │  ┌─────────────────────────────────┐ │
+                    │  │    7-STAGE GATE PIPELINE         │ │
+                    │  │ PLAN→BUILD→REVIEW→VERIFY→       │ │
+                    │  │ TEST→AUDIT→DELIVERY              │ │
+                    │  │ Sequential. No skipping.         │ │
+                    │  │ 3-attempt verify loop, then      │ │
+                    │  │ escalate with iteration bump.    │ │
+                    │  └─────────────────────────────────┘ │
+                    └──────────┬──────────────────────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    │                     │
+                    ▼                     ▼
+   ┌─────────────────────────┐  ┌─────────────────────────┐
+   │      manta-plan         │  │      manta-exec          │
+   │     (Plan Brain)        │  │     (Exec Brain)         │
+   │  Read-only + PSM        │  │  Write + execution +     │
+   │  NO write/edit/bash/task│  │  full filesystem access  │
+   │  + VC(34), RB(6)        │  │  + VC(34), RB(6)         │
+   │  Analysis, planning,    │  │  Implementation, build,  │
+   │  code review, research  │  │  test, container, audit  │
+   └─────────────────────────┘  └─────────────────────────┘
+```
 
 ---
 
