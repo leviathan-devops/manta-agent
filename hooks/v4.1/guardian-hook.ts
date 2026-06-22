@@ -7,8 +7,8 @@ const RB_TOOLS = ['reasoning-bus_reasoning_channels','reasoning-bus_reasoning_ch
 const HIVE_READ_TOOLS = ['hive_context','hive_scan','hive_status','hive_trash_list','hive_trash_status'];
 const HIVE_FULL_TOOLS = ['hive_remember','hive_forget','hive_purge','hive_restore'];
 const ORCHESTRATOR_TOOLS = new Set(['task', 'manta-compaction', 'checkpoint', 'manta-status', 'manta-gate', 'manta-evidence', 'todowrite', ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS, ...HIVE_FULL_TOOLS]);
-const PLAN_TOOLS = new Set(['read', 'glob', 'grep', 'webfetch', 'question', 'manta-code-review', 'checkpoint', 'ps-mode-status', 'ps-mode-layer', 'ps-mode-evidence', 'ps-mode-derail', 'ps-mode-debug', ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
-const EXEC_TOOLS = new Set(['read', 'write', 'edit', 'bash', 'glob', 'grep', 'manta-spawn-container', 'manta-test-runner', 'manta-runtime-audit', 'manta-code-audit', 'manta-code-review', 'checkpoint', ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+const PLAN_TOOLS = new Set(['read', 'glob', 'grep', 'webfetch', 'question', 'manta-code-review', 'checkpoint', 'todowrite', 'ps-mode-status', 'ps-mode-layer', 'ps-mode-evidence', 'ps-mode-derail', 'ps-mode-debug', ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+const EXEC_TOOLS = new Set(['read', 'write', 'edit', 'bash', 'glob', 'grep', 'manta-spawn-container', 'manta-test-runner', 'manta-runtime-audit', 'manta-code-audit', 'manta-code-review', 'checkpoint', 'todowrite', ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
 const FOREIGN_IDENTIFIERS = ['shark', 'kraken', 'spider', 'trident', 'hydra', 'hermes'];
 function isForeignTool(tool: string): boolean {
   const lower = tool.toLowerCase();

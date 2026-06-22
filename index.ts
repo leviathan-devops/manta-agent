@@ -23,8 +23,7 @@ import { createMantaRuntimeAuditTool } from './tools/manta-runtime-audit.js';
 import { createMantaCodeAuditTool } from './tools/manta-code-audit.js';
 import { createMantaVisionTool } from './tools/manta-vision.js';
 import { createMantaCompactionTool } from './tools/manta-compaction.js';
-import { setPluginDirectory, loadMantaIdentity, formatIdentityForSystemPrompt } from './shared/manta-identity-loader.js';
-import { synthesizeT1Injectables } from './shared/manta-identity-synthesizer.js';
+import { setPluginDirectory, loadMantaIdentity } from './shared/manta-identity-loader.js';
 import { MANTA_AGENTS_CONFIG } from './agents/definitions.js';
 
 const mantaColor = '#6B4C9A';
@@ -46,20 +45,16 @@ export default async function MantaAgent(input: PluginInput): Promise<Hooks> {
   const compactionManager = new CompactionManager(workspacePath);
   coordinator.initialize();
 
-  // Initialize identity pipeline
+  // Identity pipeline — warheads are pre-built const strings compiled into the bundle
+  // No dynamic synthesis, caching-safe. Loader still needed for chat-message-hook getMantaIdentityPrompt().
   try {
     const pluginDir = import.meta?.url ? new URL('.', import.meta.url).pathname : process.cwd();
     setPluginDirectory(pluginDir);
-    const identity = loadMantaIdentity();
-    if (identity) {
-      synthesizeT1Injectables();
-      mantaLog('Identity pipeline initialized: 7 T2 files → 6 T1 warheads');
-    } else {
-      mantaWarn('Identity files not found — running without T2 identity pipeline');
-    }
+    loadMantaIdentity();
   } catch (e) {
-    mantaWarn('Identity pipeline init failed (non-fatal):', e);
+    mantaWarn('Identity loader init failed (non-fatal):', e);
   }
+  mantaLog('Identity pipeline: static const warheads loaded');
 
   const statusTool = createMantaStatusTool(stateStore, gm);
   const gateTool = createMantaGateTool(gm, guardian);

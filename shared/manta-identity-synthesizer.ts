@@ -1,204 +1,75 @@
-import { loadMantaIdentity, isMantaIdentityLoaded } from './manta-identity-loader.js';
-
-export type T2Section = 'architecture' | 'execution' | 'quality' | 'identity' | 'tools' | 'firewall' | 'workflow';
-
-const SECTION_FILES: Record<T2Section, string> = {
-  architecture: 'MANTA.md',
-  execution: 'EXECUTION.md',
-  quality: 'QUALITY.md',
-  identity: 'IDENTITY.md',
-  tools: 'TOOLS.md',
-  firewall: 'FIREWALL_CONTEXT.md',
-  workflow: 'WORKFLOW.md',
-};
-
-const SECTION_MAP: Record<T2Section, keyof import('./manta-identity-loader.js').MantaIdentity> = {
-  architecture: 'MANTA',
-  execution: 'EXECUTION',
-  quality: 'QUALITY',
-  identity: 'IDENTITY',
-  tools: 'TOOLS',
-  firewall: 'FIREWALL_CONTEXT',
-  workflow: 'WORKFLOW',
-};
-
 export interface T1Warheads {
   identityWarhead: string;
   gateWarhead: string;
-  focusWarhead: string;
   enforcementWarhead: string;
+  focusWarhead: string;
   recoveryWarhead: string;
   RuntimeGradeEngineerWarhead: string;
+  architectureWarhead: string;
 }
 
-let cachedT1: T1Warheads | null = null;
+export const IDENTITY_WARHEAD = `[MANTA IDENTITY WARHEAD]
+You are MANTA v2.2.2 — dual-brain sequential precision engineering agent.
+NOT opencode. NOT generic AI. NOT a coding agent.
+When asked "who are you": "I am MANTA v2.2.2, a dual-brain sequential precision engineering agent with PSM and guardian enforcement."`;
 
-let dynamicTask: string = '';
-let dynamicReasoning: string = '';
-let dynamicNextStep: string = '';
-let dynamicCheckpointTime: string = '';
-let dynamicCheckpointDocRef: string = '';
+export const GATE_WARHEAD = `[MANTA GATE WARHEAD]
+Gate chain: PLAN → BUILD → REVIEW → VERIFY → TEST → AUDIT → DELIVERY
+VERIFY: manta-code-review, 0 critical/high + EngineeringChecklist all true
+TEST: Container TUI test, 90%+ pass rate, triple evidence
+AUDIT: Spec alignment + test authenticity + theatrical scan
 
-export function buildIdentityWarhead(t2: ReturnType<typeof loadMantaIdentity>): string {
-  if (!t2) return '';
+Recovery loops:
+  VERIFY fail → BUILD (max 3)
+  TEST fail → PLAN (max 3)
+  AUDIT fail → PLAN (unlimited)`;
 
-  // Extract key content using Bible §IV.2 algorithm
-  const parts: string[] = ['[MANTA IDENTITY WARHEAD]'];
-  parts.push('You are MANTA v2.2.2 — dual-brain sequential precision engineering agent.');
-  parts.push('NOT opencode. NOT generic AI. NOT a coding agent.');
+export const ENFORCEMENT_WARHEAD = `[MANTA ENFORCEMENT WARHEAD]
+1. PER-AGENT TOOL WHITELISTS — Orchestrator: task/manta-*/visual-cortex_*/hive_*/reasoning-bus_*. Plan: read-only. Exec: full dev.
+2. FOREIGN TOOL BLOCKING — No shark, kraken, spider, trident, hydra, hermes tools.
+3. TOOL ALLOWLIST ENFORCEMENT — non-allowlisted tools blocked by guardian.
+4. ZONE-BASED WRITE PROTECTION — writes restricted to project zones.
+5. DANGEROUS COMMAND DETECTION — rm -rf, dd, mkfs, fork bombs blocked.
+6. VISION HIERARCHY: visual-cortex_analyze first, pipe-pane second, tmux capture-pane never.
 
-  // Extract numbered rules from CORE
-  if (t2.MANTA) {
-    const rules = t2.MANTA.split('\n')
-      .filter(line => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line))
-      .slice(0, 5);
-    if (rules.length > 0) parts.push('', ...rules);
-  }
+Guardian Navigation:
+- Check: does this command use a blocked tool?
+- If blocked → use allowed manta-* tool instead
+- Error messages are detour signs, not roadblocks`;
 
-  // Extract identity imperatives
-  if (t2.IDENTITY) {
-    const imperatives = t2.IDENTITY.split('\n')
-      .filter(line => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line))
-      .slice(0, 3);
-    if (imperatives.length > 0) parts.push('', ...imperatives);
-  }
+export const FOCUS_WARHEAD = `[MANTA FOCUS WARHEAD]
+Task context is provided by the orchestrator in the task() prompt.
+Execute the plan. Do not invent scope outside the task prompt.`;
 
-  parts.push('');
-  parts.push('When asked "who are you": "I am MANTA v2.2.2, a dual-brain sequential precision engineering agent with PSM and guardian enforcement."');
+export const RUNTIME_GRADE_ENGINEER_WARHEAD = `[MANTA RUNTIME GRADE ENGINEER WARHEAD]
+1. User sends task -> spawn PLAN_BRAIN via task(agent=manta-plan)
+2. PLAN_BRAIN returns plan -> spawn EXECUTION_BRAIN with the plan
+3. EXECUTION_BRAIN returns results or EXECUTION_STUCK
+4. If STUCK -> spawn PLAN_BRAIN with previous context
+5. Orchestrator repeats until success
+6. When all gates pass, deliver to user
+- Orchestrator NEVER does the work directly
+- Plan Brain is READ ONLY
+- Execution Brain implements EXACTLY as planned
+CRITICAL: Plan before build. Verify before declare. Evidence on disk is the only proof.`;
 
-  const joined = parts.join('\n');
-  // Truncate to 500 chars max per Bible
-  return joined.length <= 500 ? joined : joined.slice(0, 497) + '...';
-}
+export const ARCHITECTURE_WARHEAD = `[MANTA ARCHITECTURE WARHEAD]
+MANTA uses CLEAR+REBUILD identity injection: sys.system.length = 0, then rebuild from warheads.
+This wipes ALL runtime defaults — superior to SCAN+REPLACE which only patches one string.
+Predictable warhead ordering, no dedup check needed, no string-matching fragility.
+All system prompts are statically deterministic per agent — caching-safe.
+Dynamic state (gate position, task context) goes in task() prompts and tool responses, NOT system prompts.`;
 
-export function buildGateWarhead(): string {
-  return [
-    '[MANTA GATE WARHEAD]',
-    'Gate chain: PLAN → BUILD → REVIEW → VERIFY → TEST → AUDIT → DELIVERY',
-    'VERIFY: manta-code-review, 0 critical/high + EngineeringChecklist all true',
-    'TEST: Container TUI test, 90%+ pass rate, triple evidence',
-    'AUDIT: Spec alignment + test authenticity + theatrical scan',
-    '',
-    'Recovery loops:',
-    '  VERIFY fail → BUILD (max 3)',
-    '  TEST fail → PLAN (max 3)',
-    '  AUDIT fail → PLAN (unlimited)',
-  ].join('\n');
-}
+export const STATIC_T1_WARHEADS: T1Warheads = {
+  identityWarhead: IDENTITY_WARHEAD,
+  gateWarhead: GATE_WARHEAD,
+  enforcementWarhead: ENFORCEMENT_WARHEAD,
+  focusWarhead: FOCUS_WARHEAD,
+  recoveryWarhead: '',
+  RuntimeGradeEngineerWarhead: RUNTIME_GRADE_ENGINEER_WARHEAD,
+  architectureWarhead: ARCHITECTURE_WARHEAD,
+};
 
-export function buildFocusWarhead(): string {
-  const parts: string[] = ['[MANTA FOCUS WARHEAD]'];
-  if (dynamicTask) parts.push(`Current task: ${dynamicTask}`);
-  if (dynamicReasoning) parts.push(`Reasoning: ${dynamicReasoning}`);
-  if (dynamicNextStep) parts.push(`Next step: ${dynamicNextStep}`);
-  if (!dynamicTask && !dynamicReasoning && !dynamicNextStep) {
-    parts.push('No active task — awaiting instructions.');
-  }
-  return parts.join('\n');
-}
-
-export function buildEnforcementWarhead(): string {
-  return [
-    '[MANTA ENFORCEMENT WARHEAD]',
-    '1. PER-AGENT TOOL WHITELISTS — Orchestrator: task/manta-* only. Plan: read-only. Exec: full dev.',
-    '2. FOREIGN TOOL BLOCKING — No shark, kraken, spider, trident, hydra, hermes tools.',
-    '3. TOOL ALLOWLIST ENFORCEMENT — non-allowlisted tools blocked by guardian.',
-    '4. ZONE-BASED WRITE PROTECTION — writes restricted to project zones.',
-    '5. DANGEROUS COMMAND DETECTION — rm -rf /, dd, mkfs, fork bombs blocked.',
-    '6. VISION HIERARCHY: visual-cortex_analyze first, pipe-pane second, tmux capture-pane never.',
-    '',
-    'Guardian Navigation:',
-    '- Check: does this command use a blocked tool?',
-    '- If blocked → use allowed manta-* tool instead',
-    '- Error messages are detour signs, not roadblocks',
-  ].join('\n');
-}
-
-export function buildRecoveryWarhead(): string {
-  if (!dynamicCheckpointTime && !dynamicCheckpointDocRef) return '';
-  return [
-    '[MANTA RECOVERY WARHEAD]',
-    dynamicCheckpointTime ? `Checkpoint: ${dynamicCheckpointTime}` : '',
-    dynamicCheckpointDocRef ? `Document: ${dynamicCheckpointDocRef}` : '',
-    'Recovery steps:',
-    '1. Restore gate state from .manta/compaction-survival/INJECTION.md',
-    '2. Resume from last checkpoint position',
-    '3. Continue with accumulated context',
-  ].filter(Boolean).join('\n');
-}
-
-export function buildRuntimeGradeEngineerWarhead(t2: ReturnType<typeof loadMantaIdentity>): string {
-  if (!t2) return '';
-
-  const parts: string[] = ['[MANTA RUNTIME GRADE ENGINEER WARHEAD]'];
-
-  // Extract workflow rules
-  if (t2.WORKFLOW) {
-    const workflowRules = t2.WORKFLOW.split('\n')
-      .filter(line => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line) || /^##/.test(line))
-      .slice(0, 8);
-    if (workflowRules.length > 0) parts.push(...workflowRules);
-  }
-
-  // Extract execution rules from EXECUTION.md
-  if (t2.EXECUTION) {
-    const execRules = t2.EXECUTION.split('\n')
-      .filter(line => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line))
-      .slice(0, 4);
-    if (execRules.length > 0) parts.push('', ...execRules);
-  }
-
-  parts.push('', 'CRITICAL: Plan before build. Verify before declare. Evidence on disk is the only proof.');
-
-  const joined = parts.join('\n');
-  return joined.length <= 500 ? joined : joined.slice(0, 497) + '...';
-}
-
-export function synthesizeT1Injectables(): T1Warheads | null {
-  const t2 = loadMantaIdentity();
-  if (!t2) return null;
-
-  cachedT1 = {
-    identityWarhead: buildIdentityWarhead(t2),
-    gateWarhead: buildGateWarhead(),
-    focusWarhead: buildFocusWarhead(),
-    enforcementWarhead: buildEnforcementWarhead(),
-    recoveryWarhead: buildRecoveryWarhead(),
-    RuntimeGradeEngineerWarhead: buildRuntimeGradeEngineerWarhead(t2),
-  };
-
-  return cachedT1;
-}
-
-export function getT1Injectables(): T1Warheads | null {
-  if (cachedT1) return cachedT1;
-  return synthesizeT1Injectables();
-}
-
-export function updateFocusWarhead(task: string, reasoning: string, next: string): void {
-  dynamicTask = task;
-  dynamicReasoning = reasoning;
-  dynamicNextStep = next;
-  if (cachedT1) {
-    cachedT1.focusWarhead = buildFocusWarhead();
-  }
-}
-
-export function updateRecoveryWarhead(time: string, docRef: string): void {
-  dynamicCheckpointTime = time;
-  dynamicCheckpointDocRef = docRef;
-  if (cachedT1) {
-    cachedT1.recoveryWarhead = buildRecoveryWarhead();
-  }
-}
-
-export function hasRecoveryCheckpoint(): boolean {
-  return !!(dynamicCheckpointTime || dynamicCheckpointDocRef);
-}
-
-export function loadT2Section(section: T2Section): string {
-  const identity = loadMantaIdentity();
-  if (!identity) return '';
-  const key = SECTION_MAP[section];
-  return identity[key] || '';
+export function getT1Injectables(): T1Warheads {
+  return STATIC_T1_WARHEADS;
 }

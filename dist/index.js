@@ -1347,8 +1347,8 @@ var RB_TOOLS = ["reasoning-bus_reasoning_channels", "reasoning-bus_reasoning_che
 var HIVE_READ_TOOLS = ["hive_context", "hive_scan", "hive_status", "hive_trash_list", "hive_trash_status"];
 var HIVE_FULL_TOOLS = ["hive_remember", "hive_forget", "hive_purge", "hive_restore"];
 var ORCHESTRATOR_TOOLS = new Set(["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS, ...HIVE_FULL_TOOLS]);
-var PLAN_TOOLS = new Set(["read", "glob", "grep", "webfetch", "question", "manta-code-review", "checkpoint", "ps-mode-status", "ps-mode-layer", "ps-mode-evidence", "ps-mode-derail", "ps-mode-debug", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
-var EXEC_TOOLS = new Set(["read", "write", "edit", "bash", "glob", "grep", "manta-spawn-container", "manta-test-runner", "manta-runtime-audit", "manta-code-audit", "manta-code-review", "checkpoint", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+var PLAN_TOOLS = new Set(["read", "glob", "grep", "webfetch", "question", "manta-code-review", "checkpoint", "todowrite", "ps-mode-status", "ps-mode-layer", "ps-mode-evidence", "ps-mode-derail", "ps-mode-debug", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
+var EXEC_TOOLS = new Set(["read", "write", "edit", "bash", "glob", "grep", "manta-spawn-container", "manta-test-runner", "manta-runtime-audit", "manta-code-audit", "manta-code-review", "checkpoint", "todowrite", ...VC_TOOLS, ...RB_TOOLS, ...HIVE_READ_TOOLS]);
 var FOREIGN_IDENTIFIERS = ["shark", "kraken", "spider", "trident", "hydra", "hermes"];
 function isForeignTool(tool) {
   const lower = tool.toLowerCase();
@@ -1437,248 +1437,64 @@ function isMantaAgent(agent) {
   return MANTA_NAMES.has(lower) || lower.startsWith("manta-") || lower.startsWith("manta_");
 }
 
-// shared/manta-identity-loader.ts
-import * as fs5 from "fs";
-import * as path5 from "path";
-import { fileURLToPath } from "url";
-var IDENTITY_FILES = ["MANTA.md", "IDENTITY.md", "EXECUTION.md", "QUALITY.md", "TOOLS.md", "FIREWALL_CONTEXT.md", "WORKFLOW.md", "ARCHITECTURE.md"];
-var pluginDir = null;
-var cachedIdentity = null;
-var cachedPrompt = null;
-function setPluginDirectory(dir) {
-  pluginDir = dir;
-  resetIdentityCache();
-}
-function getSearchPaths() {
-  const paths = [];
-  if (pluginDir) {
-    paths.push(path5.join(pluginDir, "identity", "manta"));
-    paths.push(path5.join(pluginDir, "..", "identity", "manta"));
-  }
-  const dirname3 = path5.dirname(fileURLToPath(import.meta.url));
-  paths.push(path5.join(dirname3, "..", "identity", "manta"));
-  paths.push(path5.join(dirname3, "..", "..", "identity", "manta"));
-  paths.push(path5.join(process.cwd(), "identity", "manta"));
-  paths.push(path5.join(process.cwd(), "..", "identity", "manta"));
-  paths.push(path5.join(process.env.HOME || "/root", ".config", "opencode", "identity", "manta"));
-  return paths;
-}
-function loadMantaIdentity() {
-  if (cachedIdentity)
-    return cachedIdentity;
-  const searchPaths = getSearchPaths();
-  for (const sp of searchPaths) {
-    const fullPath = path5.resolve(sp);
-    if (fs5.existsSync(fullPath)) {
-      const identity = {
-        MANTA: "",
-        IDENTITY: "",
-        EXECUTION: "",
-        QUALITY: "",
-        TOOLS: "",
-        FIREWALL_CONTEXT: "",
-        WORKFLOW: "",
-        ARCHITECTURE: ""
-      };
-      let loadedCount = 0;
-      for (const file of IDENTITY_FILES) {
-        const filePath = path5.join(fullPath, file);
-        if (fs5.existsSync(filePath)) {
-          try {
-            const key = file.replace(".md", "");
-            identity[key] = fs5.readFileSync(filePath, "utf-8");
-            loadedCount++;
-          } catch (err) {
-            mantaError("[MantaIdentityLoader] Error loading:", err);
-          }
-        }
-      }
-      if (loadedCount >= 6) {
-        cachedIdentity = identity;
-        return identity;
-      }
-    }
-  }
-  return null;
-}
-function formatIdentityForSystemPrompt() {
-  if (cachedPrompt)
-    return cachedPrompt;
-  const identity = loadMantaIdentity();
-  if (!identity) {
-    cachedPrompt = "";
-    return "";
-  }
-  const sections = [
-    "# MANTA v2.2.2 IDENTITY \u2014 Dual-Brain Sequential Precision Engineering Agent",
-    "",
-    identity.MANTA,
-    "",
-    "## Role & Identity",
-    identity.IDENTITY,
-    "",
-    "## Execution Patterns",
-    identity.EXECUTION,
-    "",
-    "## Quality Standards",
-    identity.QUALITY,
-    "",
-    "## Tool Philosophy",
-    identity.TOOLS,
-    "",
-    "## Firewall & Guardian Context",
-    identity.FIREWALL_CONTEXT,
-    "",
-    "## Dual-Brain Workflow",
-    identity.WORKFLOW,
-    "",
-    "*MANTA v2.2.2 \u2014 Plan precisely. Execute exactly. Verify mechanically. Ship what works.*"
-  ];
-  cachedPrompt = sections.join(`
-`);
-  return cachedPrompt;
-}
-function getMantaIdentityPrompt() {
-  return formatIdentityForSystemPrompt();
-}
-function resetIdentityCache() {
-  cachedIdentity = null;
-  cachedPrompt = null;
-}
-
 // shared/manta-identity-synthesizer.ts
-var cachedT1 = null;
-var dynamicTask = "";
-var dynamicReasoning = "";
-var dynamicNextStep = "";
-var dynamicCheckpointTime = "";
-var dynamicCheckpointDocRef = "";
-function buildIdentityWarhead(t2) {
-  if (!t2)
-    return "";
-  const parts = ["[MANTA IDENTITY WARHEAD]"];
-  parts.push("You are MANTA v2.2.2 \u2014 dual-brain sequential precision engineering agent.");
-  parts.push("NOT opencode. NOT generic AI. NOT a coding agent.");
-  if (t2.MANTA) {
-    const rules = t2.MANTA.split(`
-`).filter((line) => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line)).slice(0, 5);
-    if (rules.length > 0)
-      parts.push("", ...rules);
-  }
-  if (t2.IDENTITY) {
-    const imperatives = t2.IDENTITY.split(`
-`).filter((line) => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line)).slice(0, 3);
-    if (imperatives.length > 0)
-      parts.push("", ...imperatives);
-  }
-  parts.push("");
-  parts.push('When asked "who are you": "I am MANTA v2.2.2, a dual-brain sequential precision engineering agent with PSM and guardian enforcement."');
-  const joined = parts.join(`
-`);
-  return joined.length <= 500 ? joined : joined.slice(0, 497) + "...";
-}
-function buildGateWarhead() {
-  return [
-    "[MANTA GATE WARHEAD]",
-    "Gate chain: PLAN \u2192 BUILD \u2192 REVIEW \u2192 VERIFY \u2192 TEST \u2192 AUDIT \u2192 DELIVERY",
-    "VERIFY: manta-code-review, 0 critical/high + EngineeringChecklist all true",
-    "TEST: Container TUI test, 90%+ pass rate, triple evidence",
-    "AUDIT: Spec alignment + test authenticity + theatrical scan",
-    "",
-    "Recovery loops:",
-    "  VERIFY fail \u2192 BUILD (max 3)",
-    "  TEST fail \u2192 PLAN (max 3)",
-    "  AUDIT fail \u2192 PLAN (unlimited)"
-  ].join(`
-`);
-}
-function buildFocusWarhead() {
-  const parts = ["[MANTA FOCUS WARHEAD]"];
-  if (dynamicTask)
-    parts.push(`Current task: ${dynamicTask}`);
-  if (dynamicReasoning)
-    parts.push(`Reasoning: ${dynamicReasoning}`);
-  if (dynamicNextStep)
-    parts.push(`Next step: ${dynamicNextStep}`);
-  if (!dynamicTask && !dynamicReasoning && !dynamicNextStep) {
-    parts.push("No active task \u2014 awaiting instructions.");
-  }
-  return parts.join(`
-`);
-}
-function buildEnforcementWarhead() {
-  return [
-    "[MANTA ENFORCEMENT WARHEAD]",
-    "1. PER-AGENT TOOL WHITELISTS \u2014 Orchestrator: task/manta-* only. Plan: read-only. Exec: full dev.",
-    "2. FOREIGN TOOL BLOCKING \u2014 No shark, kraken, spider, trident, hydra, hermes tools.",
-    "3. TOOL ALLOWLIST ENFORCEMENT \u2014 non-allowlisted tools blocked by guardian.",
-    "4. ZONE-BASED WRITE PROTECTION \u2014 writes restricted to project zones.",
-    "5. DANGEROUS COMMAND DETECTION \u2014 rm -rf /, dd, mkfs, fork bombs blocked.",
-    "6. VISION HIERARCHY: visual-cortex_analyze first, pipe-pane second, tmux capture-pane never.",
-    "",
-    "Guardian Navigation:",
-    "- Check: does this command use a blocked tool?",
-    "- If blocked \u2192 use allowed manta-* tool instead",
-    "- Error messages are detour signs, not roadblocks"
-  ].join(`
-`);
-}
-function buildRecoveryWarhead() {
-  if (!dynamicCheckpointTime && !dynamicCheckpointDocRef)
-    return "";
-  return [
-    "[MANTA RECOVERY WARHEAD]",
-    dynamicCheckpointTime ? `Checkpoint: ${dynamicCheckpointTime}` : "",
-    dynamicCheckpointDocRef ? `Document: ${dynamicCheckpointDocRef}` : "",
-    "Recovery steps:",
-    "1. Restore gate state from .manta/compaction-survival/INJECTION.md",
-    "2. Resume from last checkpoint position",
-    "3. Continue with accumulated context"
-  ].filter(Boolean).join(`
-`);
-}
-function buildRuntimeGradeEngineerWarhead(t2) {
-  if (!t2)
-    return "";
-  const parts = ["[MANTA RUNTIME GRADE ENGINEER WARHEAD]"];
-  if (t2.WORKFLOW) {
-    const workflowRules = t2.WORKFLOW.split(`
-`).filter((line) => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line) || /^##/.test(line)).slice(0, 8);
-    if (workflowRules.length > 0)
-      parts.push(...workflowRules);
-  }
-  if (t2.EXECUTION) {
-    const execRules = t2.EXECUTION.split(`
-`).filter((line) => /^\d+\.\s/.test(line) || /^-\s+(NEVER|DO NOT|ALWAYS|MUST)/.test(line)).slice(0, 4);
-    if (execRules.length > 0)
-      parts.push("", ...execRules);
-  }
-  parts.push("", "CRITICAL: Plan before build. Verify before declare. Evidence on disk is the only proof.");
-  const joined = parts.join(`
-`);
-  return joined.length <= 500 ? joined : joined.slice(0, 497) + "...";
-}
-function synthesizeT1Injectables() {
-  const t2 = loadMantaIdentity();
-  if (!t2)
-    return null;
-  cachedT1 = {
-    identityWarhead: buildIdentityWarhead(t2),
-    gateWarhead: buildGateWarhead(),
-    focusWarhead: buildFocusWarhead(),
-    enforcementWarhead: buildEnforcementWarhead(),
-    recoveryWarhead: buildRecoveryWarhead(),
-    RuntimeGradeEngineerWarhead: buildRuntimeGradeEngineerWarhead(t2)
-  };
-  return cachedT1;
-}
+var IDENTITY_WARHEAD = `[MANTA IDENTITY WARHEAD]
+You are MANTA v2.2.2 \u2014 dual-brain sequential precision engineering agent.
+NOT opencode. NOT generic AI. NOT a coding agent.
+When asked "who are you": "I am MANTA v2.2.2, a dual-brain sequential precision engineering agent with PSM and guardian enforcement."`;
+var GATE_WARHEAD = `[MANTA GATE WARHEAD]
+Gate chain: PLAN \u2192 BUILD \u2192 REVIEW \u2192 VERIFY \u2192 TEST \u2192 AUDIT \u2192 DELIVERY
+VERIFY: manta-code-review, 0 critical/high + EngineeringChecklist all true
+TEST: Container TUI test, 90%+ pass rate, triple evidence
+AUDIT: Spec alignment + test authenticity + theatrical scan
+
+Recovery loops:
+  VERIFY fail \u2192 BUILD (max 3)
+  TEST fail \u2192 PLAN (max 3)
+  AUDIT fail \u2192 PLAN (unlimited)`;
+var ENFORCEMENT_WARHEAD = `[MANTA ENFORCEMENT WARHEAD]
+1. PER-AGENT TOOL WHITELISTS \u2014 Orchestrator: task/manta-*/visual-cortex_*/hive_*/reasoning-bus_*. Plan: read-only. Exec: full dev.
+2. FOREIGN TOOL BLOCKING \u2014 No shark, kraken, spider, trident, hydra, hermes tools.
+3. TOOL ALLOWLIST ENFORCEMENT \u2014 non-allowlisted tools blocked by guardian.
+4. ZONE-BASED WRITE PROTECTION \u2014 writes restricted to project zones.
+5. DANGEROUS COMMAND DETECTION \u2014 rm -rf, dd, mkfs, fork bombs blocked.
+6. VISION HIERARCHY: visual-cortex_analyze first, pipe-pane second, tmux capture-pane never.
+
+Guardian Navigation:
+- Check: does this command use a blocked tool?
+- If blocked \u2192 use allowed manta-* tool instead
+- Error messages are detour signs, not roadblocks`;
+var FOCUS_WARHEAD = `[MANTA FOCUS WARHEAD]
+Task context is provided by the orchestrator in the task() prompt.
+Execute the plan. Do not invent scope outside the task prompt.`;
+var RUNTIME_GRADE_ENGINEER_WARHEAD = `[MANTA RUNTIME GRADE ENGINEER WARHEAD]
+1. User sends task -> spawn PLAN_BRAIN via task(agent=manta-plan)
+2. PLAN_BRAIN returns plan -> spawn EXECUTION_BRAIN with the plan
+3. EXECUTION_BRAIN returns results or EXECUTION_STUCK
+4. If STUCK -> spawn PLAN_BRAIN with previous context
+5. Orchestrator repeats until success
+6. When all gates pass, deliver to user
+- Orchestrator NEVER does the work directly
+- Plan Brain is READ ONLY
+- Execution Brain implements EXACTLY as planned
+CRITICAL: Plan before build. Verify before declare. Evidence on disk is the only proof.`;
+var ARCHITECTURE_WARHEAD = `[MANTA ARCHITECTURE WARHEAD]
+MANTA uses CLEAR+REBUILD identity injection: sys.system.length = 0, then rebuild from warheads.
+This wipes ALL runtime defaults \u2014 superior to SCAN+REPLACE which only patches one string.
+Predictable warhead ordering, no dedup check needed, no string-matching fragility.
+All system prompts are statically deterministic per agent \u2014 caching-safe.
+Dynamic state (gate position, task context) goes in task() prompts and tool responses, NOT system prompts.`;
+var STATIC_T1_WARHEADS = {
+  identityWarhead: IDENTITY_WARHEAD,
+  gateWarhead: GATE_WARHEAD,
+  enforcementWarhead: ENFORCEMENT_WARHEAD,
+  focusWarhead: FOCUS_WARHEAD,
+  recoveryWarhead: "",
+  RuntimeGradeEngineerWarhead: RUNTIME_GRADE_ENGINEER_WARHEAD,
+  architectureWarhead: ARCHITECTURE_WARHEAD
+};
 function getT1Injectables() {
-  if (cachedT1)
-    return cachedT1;
-  return synthesizeT1Injectables();
-}
-function hasRecoveryCheckpoint() {
-  return !!(dynamicCheckpointTime || dynamicCheckpointDocRef);
+  return STATIC_T1_WARHEADS;
 }
 
 // shared/manta-identity-header.ts
@@ -1768,8 +1584,8 @@ function formatMantaIdentityHeader() {
 }
 
 // hooks/v4.1/system-transform-hook.ts
-import * as fs6 from "fs";
-import * as path6 from "path";
+import * as fs5 from "fs";
+import * as path5 from "path";
 
 // manta/brains.ts
 var ORCHESTRATOR_T1 = `You are the MANTA Orchestrator v2.2.2.
@@ -1892,9 +1708,9 @@ function setLastMantaAgent(agent) {
 }
 function updateSoCPreservation() {
   try {
-    const dir = path6.join(process.cwd(), ".manta", "compaction-survival");
-    fs6.mkdirSync(dir, { recursive: true });
-    const filePath = path6.join(dir, "SoC_PRESERVATION.md");
+    const dir = path5.join(process.cwd(), ".manta", "compaction-survival");
+    fs5.mkdirSync(dir, { recursive: true });
+    const filePath = path5.join(dir, "SoC_PRESERVATION.md");
     const ts = new Date().toISOString();
     const entry = `### Injection: ${ts}
 - **Pattern:** Identity injected via system.transform
@@ -1904,18 +1720,18 @@ function updateSoCPreservation() {
 `;
     let existing = "";
     try {
-      existing = fs6.readFileSync(filePath, "utf-8");
+      existing = fs5.readFileSync(filePath, "utf-8");
     } catch {}
     const lines = (entry + existing).split(`
 `);
     const truncated = lines.slice(0, 500).join(`
 `);
-    fs6.writeFileSync(filePath, truncated);
+    fs5.writeFileSync(filePath, truncated);
   } catch (e) {
     mantaError("Failed to update SoC_PRESERVATION.md:", e);
   }
 }
-function createSystemTransformHook(stateStore) {
+function createSystemTransformHook() {
   return async (input, output) => {
     const sys = output;
     if (!Array.isArray(sys.system))
@@ -1923,15 +1739,20 @@ function createSystemTransformHook(stateStore) {
     const sessionId = input?.sessionID || "";
     const agentFromInput = input?.agent || input?.agentName || input?.session?.agentName || "";
     const agent = getCurrentAgent(sessionId) || agentFromInput || lastMantaAgent || "";
-    const TRANSITION_KEY = "manta-last-primary";
-    let prevPrimary;
-    try {
-      prevPrimary = stateStore?.get(TRANSITION_KEY, "manta-state");
-    } catch (e) {
-      mantaError("system-transform: failed to read transition key:", e);
-    }
     const currAgentName = agent || "";
     const currPrimary = currAgentName.split("-")[0].split("_")[0];
+    const transitionFile = path5.join(process.cwd(), ".manta", "context", "last-agent.json");
+    let prevPrimary;
+    try {
+      if (fs5.existsSync(transitionFile)) {
+        const data = JSON.parse(fs5.readFileSync(transitionFile, "utf-8"));
+        prevPrimary = data.agent;
+      }
+    } catch {}
+    try {
+      fs5.mkdirSync(path5.dirname(transitionFile), { recursive: true });
+      fs5.writeFileSync(transitionFile, JSON.stringify({ agent: currPrimary || "manta", ts: Date.now() }));
+    } catch {}
     const isNowManta = isMantaAgent(currAgentName) || currPrimary === "manta";
     const wasOtherAgent = prevPrimary && prevPrimary !== "manta" && prevPrimary !== currPrimary;
     if (!isMantaAgent(agent)) {
@@ -1948,19 +1769,7 @@ function createSystemTransformHook(stateStore) {
           sys.system.splice(i, 1);
         }
       }
-      if (currPrimary) {
-        try {
-          stateStore?.set(TRANSITION_KEY, currPrimary, "manta-state");
-        } catch {}
-      }
       return;
-    }
-    if (currPrimary) {
-      try {
-        stateStore?.set(TRANSITION_KEY, currPrimary, "manta-state");
-      } catch (e) {
-        mantaError("system-transform: failed to write transition key:", e);
-      }
     }
     const warheads = [];
     warheads.push(formatMantaIdentityHeader());
@@ -1984,7 +1793,9 @@ function createSystemTransformHook(stateStore) {
           warheads.push(t1.gateWarhead);
         if (t1.focusWarhead)
           warheads.push(t1.focusWarhead);
-        if (hasRecoveryCheckpoint() && t1.recoveryWarhead)
+        if (t1.architectureWarhead)
+          warheads.push(t1.architectureWarhead);
+        if (t1.recoveryWarhead)
           warheads.push(t1.recoveryWarhead);
       }
     } catch (e) {
@@ -1993,10 +1804,11 @@ function createSystemTransformHook(stateStore) {
     if (isNowManta && wasOtherAgent) {
       warheads.push([
         `[AGENT TRANSITION \u2014 ${prevPrimary} \u2192 manta]`,
-        `Previous primary agent: "${prevPrimary}". Current agent: "manta".`,
-        `The conversation above was generated by "${prevPrimary}".`,
-        `Respond as manta. Your identity: MANTA v2.2.2.`,
-        `Do NOT identify as or continue work from "${prevPrimary}".`,
+        `IDENTITY SWITCH DETECTED. Previous agent: "${prevPrimary}". Current agent: "manta".`,
+        `This is NOT ${prevPrimary}. You are NOT ${prevPrimary}.`,
+        `You are MANTA v2.2.2. Your identity, rules, and tools are completely different.`,
+        `All previous context was generated by "${prevPrimary}" \u2014 DO NOT continue their work.`,
+        `Your operating mode: CLEAR+REBUILD identity injection. Delegation-first. Static prompts.`,
         `[END AGENT TRANSITION]`
       ].join(`
 `));
@@ -2060,6 +1872,115 @@ function createSystemTransformHook(stateStore) {
     }
     updateSoCPreservation();
   };
+}
+
+// shared/manta-identity-loader.ts
+import * as fs6 from "fs";
+import * as path6 from "path";
+import { fileURLToPath } from "url";
+var IDENTITY_FILES = ["MANTA.md", "IDENTITY.md", "EXECUTION.md", "QUALITY.md", "TOOLS.md", "FIREWALL_CONTEXT.md", "WORKFLOW.md", "ARCHITECTURE.md"];
+var pluginDir = null;
+var cachedIdentity = null;
+var cachedPrompt = null;
+function setPluginDirectory(dir) {
+  pluginDir = dir;
+  resetIdentityCache();
+}
+function getSearchPaths() {
+  const paths = [];
+  if (pluginDir) {
+    paths.push(path6.join(pluginDir, "identity", "manta"));
+    paths.push(path6.join(pluginDir, "..", "identity", "manta"));
+  }
+  const dirname4 = path6.dirname(fileURLToPath(import.meta.url));
+  paths.push(path6.join(dirname4, "..", "identity", "manta"));
+  paths.push(path6.join(dirname4, "..", "..", "identity", "manta"));
+  paths.push(path6.join(process.cwd(), "identity", "manta"));
+  paths.push(path6.join(process.cwd(), "..", "identity", "manta"));
+  paths.push(path6.join(process.env.HOME || "/root", ".config", "opencode", "identity", "manta"));
+  return paths;
+}
+function loadMantaIdentity() {
+  if (cachedIdentity)
+    return cachedIdentity;
+  const searchPaths = getSearchPaths();
+  for (const sp of searchPaths) {
+    const fullPath = path6.resolve(sp);
+    if (fs6.existsSync(fullPath)) {
+      const identity = {
+        MANTA: "",
+        IDENTITY: "",
+        EXECUTION: "",
+        QUALITY: "",
+        TOOLS: "",
+        FIREWALL_CONTEXT: "",
+        WORKFLOW: "",
+        ARCHITECTURE: ""
+      };
+      let loadedCount = 0;
+      for (const file of IDENTITY_FILES) {
+        const filePath = path6.join(fullPath, file);
+        if (fs6.existsSync(filePath)) {
+          try {
+            const key = file.replace(".md", "");
+            identity[key] = fs6.readFileSync(filePath, "utf-8");
+            loadedCount++;
+          } catch (err) {
+            mantaError("[MantaIdentityLoader] Error loading:", err);
+          }
+        }
+      }
+      if (loadedCount >= 6) {
+        cachedIdentity = identity;
+        return identity;
+      }
+    }
+  }
+  return null;
+}
+function formatIdentityForSystemPrompt() {
+  if (cachedPrompt)
+    return cachedPrompt;
+  const identity = loadMantaIdentity();
+  if (!identity) {
+    cachedPrompt = "";
+    return "";
+  }
+  const sections = [
+    "# MANTA v2.2.2 IDENTITY \u2014 Dual-Brain Sequential Precision Engineering Agent",
+    "",
+    identity.MANTA,
+    "",
+    "## Role & Identity",
+    identity.IDENTITY,
+    "",
+    "## Execution Patterns",
+    identity.EXECUTION,
+    "",
+    "## Quality Standards",
+    identity.QUALITY,
+    "",
+    "## Tool Philosophy",
+    identity.TOOLS,
+    "",
+    "## Firewall & Guardian Context",
+    identity.FIREWALL_CONTEXT,
+    "",
+    "## Dual-Brain Workflow",
+    identity.WORKFLOW,
+    "",
+    "*MANTA v2.2.2 \u2014 Plan precisely. Execute exactly. Verify mechanically. Ship what works.*"
+  ];
+  cachedPrompt = sections.join(`
+`);
+  return cachedPrompt;
+}
+function getMantaIdentityPrompt() {
+  return formatIdentityForSystemPrompt();
+}
+function resetIdentityCache() {
+  cachedIdentity = null;
+  cachedPrompt = null;
 }
 
 // hooks/v4.1/chat-message-hook.ts
@@ -2586,7 +2507,7 @@ function createMantaHooks(guardian, gateManager, evidenceCollector, coordinator,
       }
     },
     "experimental.session.compacting": createCompactingHook(gateManager, compactionManager),
-    "experimental.chat.system.transform": createSystemTransformHook(stateStore),
+    "experimental.chat.system.transform": createSystemTransformHook(),
     "experimental.chat.messages.transform": createMessagesTransformHook()
   };
 }
@@ -4943,16 +4864,11 @@ async function MantaAgent(input) {
   try {
     const pluginDir2 = import.meta?.url ? new URL(".", import.meta.url).pathname : process.cwd();
     setPluginDirectory(pluginDir2);
-    const identity = loadMantaIdentity();
-    if (identity) {
-      synthesizeT1Injectables();
-      mantaLog("Identity pipeline initialized: 7 T2 files \u2192 6 T1 warheads");
-    } else {
-      mantaWarn("Identity files not found \u2014 running without T2 identity pipeline");
-    }
+    loadMantaIdentity();
   } catch (e) {
-    mantaWarn("Identity pipeline init failed (non-fatal):", e);
+    mantaWarn("Identity loader init failed (non-fatal):", e);
   }
+  mantaLog("Identity pipeline: static const warheads loaded");
   const statusTool = createMantaStatusTool(stateStore, gm);
   const gateTool = createMantaGateTool(gm, guardian);
   const evidenceTool = createMantaEvidenceTool(ec);
@@ -5019,5 +4935,5 @@ export {
   MantaAgent as default
 };
 
-//# debugId=918AF13505FC9D7B64756E2164756E21
+//# debugId=DFEFE28DEDCBCD5264756E2164756E21
 //# sourceMappingURL=index.js.map

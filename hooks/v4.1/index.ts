@@ -80,7 +80,7 @@ export function createMantaHooks(
       }
     },
     'experimental.session.compacting': createCompactingHook(gateManager, compactionManager),
-    'experimental.chat.system.transform': createSystemTransformHook(stateStore),
+    'experimental.chat.system.transform': createSystemTransformHook(),
     'experimental.chat.messages.transform': createMessagesTransformHook(),
   };
 }
