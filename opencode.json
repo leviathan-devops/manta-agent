@@ -217,6 +217,16 @@
       ],
       "enabled": true,
       "environment": {}
+    },
+    "reasoning-bus": {
+      "type": "local",
+      "command": [
+        "node",
+        "/root/.config/opencode/mcp/reasoning-bus/dist/index.js"
+      ],
+      "enabled": true,
+      "environment": {}
     }
-  }
+  },
+  "autoupdate": false
 }

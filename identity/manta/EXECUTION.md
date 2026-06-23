@@ -1,4 +1,4 @@
-# EXECUTION.md — Manta v2.2 Execution Protocol
+# EXECUTION.md — Manta v2.2.2 Execution Protocol
 
 ## Gate Chain
 
@@ -89,4 +89,4 @@ When context compaction fires (OpenCode auto-triggers at ~85% tokens):
 
 ---
 
-*Manta v2.2 — Execution Protocol*
+*Manta v2.2.2 — Execution Protocol*

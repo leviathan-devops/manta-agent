@@ -4,7 +4,7 @@
 export const MANTA_AGENTS_CONFIG = {
   orchestrator: {
     name: 'manta',
-    description: 'MANTA v2.2 — Orchestrator. Spawns Plan Brain and Execution Brain subagents.',
+    description: 'MANTA v2.2.2 — Orchestrator. Spawns Plan Brain and Execution Brain subagents.',
     mode: 'primary' as const,
     color: '#6B4C9A',
     tools: ['task', 'manta-compaction', 'checkpoint', 'manta-status', 'manta-gate', 'manta-evidence', 'todowrite', 'visual-cortex_*', 'hive_context', 'hive_scan', 'hive_status', 'hive_trash_list', 'hive_trash_status', 'hive_remember', 'hive_forget', 'hive_purge', 'hive_restore', 'reasoning-bus_*'],

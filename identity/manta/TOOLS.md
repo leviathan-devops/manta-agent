@@ -1,4 +1,4 @@
-# TOOLS.md — Manta v2.2 Tool Contract
+# TOOLS.md — Manta v2.2.2 Tool Contract
 
 ## Core Tools (4)
 
@@ -59,4 +59,4 @@ Cross-agent tools (shark-*, kraken-*, trident-*) are BLOCKED.
 
 ---
 
-*Manta v2.2 — Tool Contract*
+*Manta v2.2.2 — Tool Contract*

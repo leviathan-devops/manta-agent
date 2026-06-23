@@ -1,4 +1,4 @@
-# MANTA v2.2 — Triangle Architecture Build Spec
+# MANTA v2.2.2 — Triangle Architecture Build Spec
 
 ## Architecture
 Triangle: MANTA Orchestrator → PLAN_BRAIN subagent → EXECUTION_BRAIN subagent

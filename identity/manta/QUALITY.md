@@ -1,4 +1,4 @@
-# QUALITY.md — Manta v2.2 Quality Standards
+# QUALITY.md — Manta v2.2.2 Quality Standards
 
 ## Non-Negotiable Standards
 
@@ -45,4 +45,4 @@ The runtime auditor blocks:
 
 ---
 
-*Manta v2.2 — Quality Standards*
+*Manta v2.2.2 — Quality Standards*

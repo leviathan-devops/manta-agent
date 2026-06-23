@@ -27,7 +27,7 @@ function updateSoCPreservation(): void {
     const ts = new Date().toISOString();
     const entry = `### Injection: ${ts}\n- **Pattern:** Identity injected via system.transform\n- **Context:** Agent identity binding + T1 warheads applied\n- **Source:** system-transform-hook.ts\n\n`;
     let existing = '';
-    try { existing = fs.readFileSync(filePath, 'utf-8'); } catch {}
+    try { existing = fs.readFileSync(filePath, 'utf-8'); } catch (e) { mantaError('system-transform: SoC read failed:', e); }
     const lines = (entry + existing).split('\n');
     const truncated = lines.slice(0, 500).join('\n');
     fs.writeFileSync(filePath, truncated);
@@ -55,13 +55,13 @@ export function createSystemTransformHook(): Hooks['experimental.chat.system.tra
         const data = JSON.parse(fs.readFileSync(transitionFile, 'utf-8'));
         prevPrimary = data.agent;
       }
-    } catch {}
+    } catch (e) { mantaError('system-transform: agent transition read failed:', e); }
     
     // Write current agent for next session's transition detection
     try {
       fs.mkdirSync(path.dirname(transitionFile), { recursive: true });
       fs.writeFileSync(transitionFile, JSON.stringify({ agent: currPrimary || 'manta', ts: Date.now() }));
-    } catch {}
+    } catch (e) { mantaError('system-transform: agent transition write failed:', e); }
     
     const isNowManta = isMantaAgent(currAgentName) || currPrimary === 'manta';
     const wasOtherAgent = prevPrimary && prevPrimary !== 'manta' && prevPrimary !== currPrimary;

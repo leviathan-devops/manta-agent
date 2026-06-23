@@ -1,5 +1,5 @@
 /**
- * Manta Test Runner — Container-Aware Mechanical Tests v2.2
+ * Manta Test Runner — Container-Aware Mechanical Tests v2.2.2
  *
  * Uses plugin API directly — does NOT rely on `opencode run` (banned, doesn't fire hooks).
  * Runs mechanical tests that exercize the actual plugin runtime.
@@ -232,7 +232,7 @@ export function createMantaTestRunnerTool() {
       }
 
       if (action === 'run' || action === 'report') {
-        const id = buildId || `manta-v2.2-${new Date().toISOString().slice(0, 10)}`;
+        const id = buildId || `manta-v2.2.2-${new Date().toISOString().slice(0, 10)}`;
         const results: TestResult[] = [];
 
         for (const testDef of MANTA_TEST_SUITE) {
@@ -255,7 +255,7 @@ export function createMantaTestRunnerTool() {
         const overallPassed = passRate >= 0.96;
 
         const suiteResult: TestSuiteResult = {
-          suite: 'manta-v2.2-container',
+          suite: 'manta-v2.2.2-container',
           timestamp: Date.now(),
           buildId: id,
           tests: results,

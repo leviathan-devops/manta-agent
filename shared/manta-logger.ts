@@ -15,7 +15,7 @@ const LOG_FILE = path.join(LOG_DIR, 'manta.log');
 function ensureLogDir(): void {
   try {
     fs.mkdirSync(LOG_DIR, { recursive: true });
-  } catch {}
+  } catch (e) { process.stderr.write('[MANTA] ensureLogDir mkdir failed\n'); }
 }
 
 export function mantaLog(...args: unknown[]): void {
@@ -23,7 +23,7 @@ export function mantaLog(...args: unknown[]): void {
     ensureLogDir();
     const msg = `[MANTA] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}`;
     fs.appendFileSync(LOG_FILE, `${msg}\n`);
-  } catch {}
+  } catch (e) { process.stderr.write('[MANTA] mantaLog write failed\n'); }
 }
 
 export function mantaWarn(...args: unknown[]): void {
@@ -31,7 +31,7 @@ export function mantaWarn(...args: unknown[]): void {
     ensureLogDir();
     const msg = `[MANTA WARN] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}`;
     fs.appendFileSync(LOG_FILE, `${msg}\n`);
-  } catch {}
+  } catch (e) { process.stderr.write('[MANTA] mantaWarn write failed\n'); }
 }
 
 export function mantaError(...args: unknown[]): void {
@@ -39,5 +39,5 @@ export function mantaError(...args: unknown[]): void {
     ensureLogDir();
     const msg = `[MANTA ERROR] ${args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')}`;
     fs.appendFileSync(LOG_FILE, `${msg}\n`);
-  } catch {}
+  } catch (e) { process.stderr.write('[MANTA] mantaError write failed\n'); }
 }

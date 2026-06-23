@@ -8,6 +8,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { mantaError } from './manta-logger.js';
 
 export interface BrainMessage {
   id: string;
@@ -52,7 +53,7 @@ export function createMantaMessenger(): MantaMessenger {
   >();
   const receivedAcks = new Set<string>();
   const mantaDir = path.join(process.cwd(), '.manta', 'context');
-  try { fs.mkdirSync(mantaDir, { recursive: true }); } catch {}
+  try { fs.mkdirSync(mantaDir, { recursive: true }); } catch (e) { mantaError('messenger: context dir mkdir failed:', e); }
 
   // Restore persisted messages on startup
   try {
@@ -66,7 +67,7 @@ export function createMantaMessenger(): MantaMessenger {
         }
       }
     }
-  } catch {}
+  } catch (e) { mantaError('messenger: restore persisted messages failed:', e); }
 
   function getQueue(brainId: string): BrainMessage[] {
     if (!queues.has(brainId)) {
@@ -113,11 +114,11 @@ export function createMantaMessenger(): MantaMessenger {
       try {
         const logPath = path.join(mantaDir, 'handoff.json');
         let existing: any[] = [];
-        try { existing = JSON.parse(fs.readFileSync(logPath, 'utf-8')); } catch {}
+        try { existing = JSON.parse(fs.readFileSync(logPath, 'utf-8')); } catch (e) { mantaError('messenger: parse existing handoff failed:', e); }
         existing.push({ ...msg, writtenAt: Date.now() });
         if (existing.length > 50) existing = existing.slice(-50);
         fs.writeFileSync(logPath, JSON.stringify(existing, null, 2));
-      } catch {}
+      } catch (e) { mantaError('messenger: persist handoff failed:', e); }
     },
 
     receive(brainId: string): BrainMessage[] {

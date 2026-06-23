@@ -10,6 +10,7 @@ import { createSessionHook } from './session-hook.js';
 import { createSystemTransformHook, setProblemSolvingBrain, setMantaIdentityHeader } from './system-transform-hook.js';
 import { createMessagesTransformHook } from './messages-transform-hook.js';
 import { trackToolCall } from '../../problem-solving/psm-activator.js';
+import { mantaError } from '../../shared/manta-logger.js';
 import type { MantaCoordinator } from '../../manta/coordinator.js';
 import type { StateStore } from '../../shared/state-store.js';
 import type { MantaMessenger } from '../../shared/messenger.js';
@@ -72,7 +73,8 @@ export function createMantaHooks(
               `Gate advanced: ${gateBefore} → ${gateAfter.currentGate}`
             );
           }
-        } catch {
+        } catch (e) {
+          mantaError('hooks: compaction tool call tracking failed:', e);
           await gateHook?.(input, output);
         }
       } else {

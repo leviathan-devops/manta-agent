@@ -7,6 +7,7 @@ import {
 } from './types.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { mantaError } from '../shared/manta-logger.js';
 
 function getContainerEvidencePaths(): string[] {
   return [
@@ -169,7 +170,8 @@ export class AntiDerailmentEngine {
           }
 
           return { valid: true, passRate };
-        } catch {
+        } catch (e) {
+          mantaError('anti-derailment: container evidence parse failed:', e);
           return { valid: false, reason: 'Container test evidence file is corrupted' };
         }
       }

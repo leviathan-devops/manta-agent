@@ -13,7 +13,10 @@ var LOG_FILE = path.join(LOG_DIR, "manta.log");
 function ensureLogDir() {
   try {
     fs.mkdirSync(LOG_DIR, { recursive: true });
-  } catch {}
+  } catch (e) {
+    process.stderr.write(`[MANTA] ensureLogDir mkdir failed
+`);
+  }
 }
 function mantaLog(...args) {
   try {
@@ -21,7 +24,10 @@ function mantaLog(...args) {
     const msg = `[MANTA] ${args.map((a) => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}`;
     fs.appendFileSync(LOG_FILE, `${msg}
 `);
-  } catch {}
+  } catch (e) {
+    process.stderr.write(`[MANTA] mantaLog write failed
+`);
+  }
 }
 function mantaWarn(...args) {
   try {
@@ -29,7 +35,10 @@ function mantaWarn(...args) {
     const msg = `[MANTA WARN] ${args.map((a) => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}`;
     fs.appendFileSync(LOG_FILE, `${msg}
 `);
-  } catch {}
+  } catch (e) {
+    process.stderr.write(`[MANTA] mantaWarn write failed
+`);
+  }
 }
 function mantaError(...args) {
   try {
@@ -37,7 +46,10 @@ function mantaError(...args) {
     const msg = `[MANTA ERROR] ${args.map((a) => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}`;
     fs.appendFileSync(LOG_FILE, `${msg}
 `);
-  } catch {}
+  } catch (e) {
+    process.stderr.write(`[MANTA] mantaError write failed
+`);
+  }
 }
 
 // shared/state-store.ts
@@ -164,7 +176,9 @@ function createMantaMessenger() {
   const mantaDir = path2.join(process.cwd(), ".manta", "context");
   try {
     fs2.mkdirSync(mantaDir, { recursive: true });
-  } catch {}
+  } catch (e) {
+    mantaError("messenger: context dir mkdir failed:", e);
+  }
   try {
     const logPath = path2.join(mantaDir, "handoff.json");
     if (fs2.existsSync(logPath)) {
@@ -176,7 +190,9 @@ function createMantaMessenger() {
         }
       }
     }
-  } catch {}
+  } catch (e) {
+    mantaError("messenger: restore persisted messages failed:", e);
+  }
   function getQueue(brainId) {
     if (!queues.has(brainId)) {
       queues.set(brainId, []);
@@ -218,12 +234,16 @@ function createMantaMessenger() {
         let existing = [];
         try {
           existing = JSON.parse(fs2.readFileSync(logPath, "utf-8"));
-        } catch {}
+        } catch (e) {
+          mantaError("messenger: parse existing handoff failed:", e);
+        }
         existing.push({ ...msg, writtenAt: Date.now() });
         if (existing.length > 50)
           existing = existing.slice(-50);
         fs2.writeFileSync(logPath, JSON.stringify(existing, null, 2));
-      } catch {}
+      } catch (e) {
+        mantaError("messenger: persist handoff failed:", e);
+      }
     },
     receive(brainId) {
       const queue = getQueue(brainId);
@@ -781,10 +801,6 @@ class MantaCoordinator {
       });
     }
   }
-  getActiveT1(planBrainT1, buildBrainT1) {
-    const current = this.getCurrentBrain();
-    return current === "plan" ? planBrainT1 : buildBrainT1;
-  }
 }
 
 // shared/compaction-manager.ts
@@ -1120,7 +1136,7 @@ class CompactionManager {
 
 ## Stream Anchor
 
-**Agent:** MANTA v2.2
+**Agent:** MANTA v2.2.2
 **Time:** ${ts}
 **Tier:** ${tierLabel}
 **Trigger:** ${trigger}
@@ -1144,7 +1160,7 @@ Then:
 
 ## Identity Reminder
 
-You are **MANTA v2.2** \u2014 dual-brain sequential precision agent.
+You are **MANTA v2.2.2** \u2014 dual-brain sequential precision agent.
 - NOT Shark, NOT Kraken, NOT generic
 - Architecture: Plan Brain + Build Brain (sequential)
 - 17 tools registered
@@ -1721,7 +1737,9 @@ function updateSoCPreservation() {
     let existing = "";
     try {
       existing = fs5.readFileSync(filePath, "utf-8");
-    } catch {}
+    } catch (e) {
+      mantaError("system-transform: SoC read failed:", e);
+    }
     const lines = (entry + existing).split(`
 `);
     const truncated = lines.slice(0, 500).join(`
@@ -1748,11 +1766,15 @@ function createSystemTransformHook() {
         const data = JSON.parse(fs5.readFileSync(transitionFile, "utf-8"));
         prevPrimary = data.agent;
       }
-    } catch {}
+    } catch (e) {
+      mantaError("system-transform: agent transition read failed:", e);
+    }
     try {
       fs5.mkdirSync(path5.dirname(transitionFile), { recursive: true });
       fs5.writeFileSync(transitionFile, JSON.stringify({ agent: currPrimary || "manta", ts: Date.now() }));
-    } catch {}
+    } catch (e) {
+      mantaError("system-transform: agent transition write failed:", e);
+    }
     const isNowManta = isMantaAgent(currAgentName) || currPrimary === "manta";
     const wasOtherAgent = prevPrimary && prevPrimary !== "manta" && prevPrimary !== currPrimary;
     if (!isMantaAgent(agent)) {
@@ -2499,7 +2521,8 @@ function createMantaHooks(guardian, gateManager, evidenceCollector, coordinator,
           if (gateAfter.currentGate !== gateBefore) {
             compactionManager.onMilestone(gateAfter, `Gate advanced: ${gateBefore} \u2192 ${gateAfter.currentGate}`);
           }
-        } catch {
+        } catch (e) {
+          mantaError("hooks: compaction tool call tracking failed:", e);
           await gateHook?.(input, output);
         }
       } else {
@@ -2955,7 +2978,8 @@ class AntiDerailmentEngine {
             return { valid: false, reason: `Container test evidence is ${Math.round(age / 3600000)}h old (max 24h)` };
           }
           return { valid: true, passRate };
-        } catch {
+        } catch (e) {
+          mantaError("anti-derailment: container evidence parse failed:", e);
           return { valid: false, reason: "Container test evidence file is corrupted" };
         }
       }
@@ -4167,7 +4191,7 @@ function createMantaTestRunnerTool() {
         });
       }
       if (action === "run" || action === "report") {
-        const id = buildId || `manta-v2.2-${new Date().toISOString().slice(0, 10)}`;
+        const id = buildId || `manta-v2.2.2-${new Date().toISOString().slice(0, 10)}`;
         const results = [];
         for (const testDef of MANTA_TEST_SUITE) {
           try {
@@ -4187,7 +4211,7 @@ function createMantaTestRunnerTool() {
         const passRate = totalTests > 0 ? passedTests / totalTests : 0;
         const overallPassed = passRate >= 0.96;
         const suiteResult = {
-          suite: "manta-v2.2-container",
+          suite: "manta-v2.2.2-container",
           timestamp: Date.now(),
           buildId: id,
           tests: results,
@@ -4399,7 +4423,8 @@ function createMantaRuntimeAuditTool(basePath = ".manta") {
         try {
           const ct = JSON.parse(fs13.readFileSync(containerTestPath, "utf-8"));
           checks.push({ name: "container-test-evidence", passed: true, detail: `Found: passRate=${ct.passRate || "unknown"}` });
-        } catch {
+        } catch (e) {
+          mantaError("runtime-audit: container test parse failed:", e);
           checks.push({ name: "container-test-evidence", passed: false, detail: "File exists but is not valid JSON" });
         }
       } else {
@@ -4410,7 +4435,8 @@ function createMantaRuntimeAuditTool(basePath = ".manta") {
           const ct = JSON.parse(fs13.readFileSync(containerTestPath, "utf-8"));
           const rate = ct.passRate ?? ct.pass_rate ?? 0;
           checks.push({ name: "pass-rate", passed: rate >= 0.96, detail: `Pass rate: ${(rate * 100).toFixed(1)}% (required: \u226596%)` });
-        } catch {
+        } catch (e) {
+          mantaError("runtime-audit: pass rate parse failed:", e);
           checks.push({ name: "pass-rate", passed: false, detail: "Cannot parse pass rate" });
         }
       } else {
@@ -4507,7 +4533,8 @@ function createMantaRuntimeAuditTool(basePath = ".manta") {
         try {
           const review = JSON.parse(fs13.readFileSync(reviewPath, "utf-8"));
           checks.push({ name: "code-review", passed: review.overallPassed !== false, detail: `Code review: ${review.overallPassed !== false ? "passed" : "failed"}` });
-        } catch {
+        } catch (e) {
+          mantaError("runtime-audit: code review parse failed:", e);
           checks.push({ name: "code-review", passed: false, detail: "Code review file not valid JSON" });
         }
       } else {
@@ -4639,115 +4666,18 @@ function createMantaCodeAuditTool(basePath = ".manta") {
   });
 }
 
-// tools/manta-vision.ts
-import { tool as tool15 } from "@opencode-ai/plugin";
-var VLM_ENDPOINT = process.env.VLM_API_URL || "http://127.0.0.1:8082/v1/chat/completions";
-function toResult(data) {
-  return JSON.stringify(data, null, 2);
-}
-function createMantaVisionTool() {
-  return tool15({
-    description: "Read images/screenshots using local VLM (GLM-4.6V-Flash). You CAN see images. Pass a file path to any image and this tool will read and describe its contents including error messages, UI text, code, etc.",
-    args: {
-      imagePath: tool15.schema.string().describe("Absolute path to image file"),
-      prompt: tool15.schema.string().optional().describe("Custom prompt for VLM analysis")
-    },
-    execute: async (args) => {
-      const fs15 = await import("fs");
-      const path15 = await import("path");
-      const imagePath = args.imagePath;
-      const prompt = args.prompt || "What is shown in this image? Return the exact text visible.";
-      if (!fs15.existsSync(imagePath)) {
-        return toResult({ status: "error", message: `File not found: ${imagePath}` });
-      }
-      const ext = path15.extname(imagePath).toLowerCase();
-      const supported = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
-      if (!supported.includes(ext)) {
-        return toResult({ status: "error", message: `Unsupported format: ${ext}. Supported: ${supported.join(", ")}` });
-      }
-      const imageBuffer = fs15.readFileSync(imagePath);
-      const base64Image = imageBuffer.toString("base64");
-      const mimeType = ext === ".jpg" ? "image/jpeg" : `image/${ext.replace(".", "")}`;
-      const payload = JSON.stringify({
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } }
-          ]
-        }],
-        max_tokens: 2048,
-        temperature: 0.1
-      });
-      for (let attempt = 1;attempt <= 2; attempt++) {
-        try {
-          const response = await fetch(VLM_ENDPOINT, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: payload,
-            signal: AbortSignal.timeout(120000)
-          });
-          if (!response.ok) {
-            const text = await response.text().catch(() => "");
-            return toResult({
-              status: "error",
-              message: `VLM HTTP ${response.status}: ${text.slice(0, 200)}`
-            });
-          }
-          const data = await response.json();
-          const content = data?.choices?.[0]?.message?.content;
-          if (content && typeof content === "string" && content.length > 0) {
-            return toResult({
-              status: "ok",
-              imagePath,
-              content,
-              model: data?.model || "GLM-4.6V-Flash",
-              usage: data?.usage || {}
-            });
-          }
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 2000));
-            continue;
-          }
-          return toResult({
-            status: "error",
-            message: "VLM returned empty content after 2 attempts",
-            debug: {
-              responseKeys: Object.keys(data || {}),
-              hasChoices: !!data?.choices,
-              choicesLength: data?.choices?.length || 0,
-              hasMessage: !!data?.choices?.[0]?.message,
-              contentType: typeof data?.choices?.[0]?.message?.content,
-              contentLength: data?.choices?.[0]?.message?.content?.length || 0,
-              rawPreview: JSON.stringify(data).slice(0, 500)
-            }
-          });
-        } catch (error) {
-          if (attempt < 2) {
-            await new Promise((r) => setTimeout(r, 2000));
-            continue;
-          }
-          const err = error instanceof Error ? error : new Error(String(error));
-          const errMsg = err.message || String(error);
-          return toResult({ status: "error", message: `VLM failed after 2 attempts: ${errMsg}` });
-        }
-      }
-    }
-  });
-}
-
 // tools/manta-compaction.ts
-import { tool as tool16 } from "@opencode-ai/plugin";
+import { tool as tool15 } from "@opencode-ai/plugin";
 function stringifyResult(result) {
   return typeof result === "string" ? result : JSON.stringify(result, null, 2);
 }
 function createMantaCompactionTool(compactionManager, gateManager) {
-  return tool16({
+  return tool15({
     description: "Compaction survival: check token budget, view anchor status, or manually trigger state export",
     args: {
-      action: tool16.schema.string().describe("Action: status, export, or anchors"),
-      activeTask: tool16.schema.string().optional().describe("Active task description for export"),
-      nextSteps: tool16.schema.string().optional().describe("Next steps for export")
+      action: tool15.schema.string().describe("Action: status, export, or anchors"),
+      activeTask: tool15.schema.string().optional().describe("Active task description for export"),
+      nextSteps: tool15.schema.string().optional().describe("Next steps for export")
     },
     execute: async (args) => {
       const { action } = args;
@@ -4785,7 +4715,7 @@ function createMantaCompactionTool(compactionManager, gateManager) {
 var MANTA_AGENTS_CONFIG = {
   orchestrator: {
     name: "manta",
-    description: "MANTA v2.2 \u2014 Orchestrator. Spawns Plan Brain and Execution Brain subagents.",
+    description: "MANTA v2.2.2 \u2014 Orchestrator. Spawns Plan Brain and Execution Brain subagents.",
     mode: "primary",
     color: "#6B4C9A",
     tools: ["task", "manta-compaction", "checkpoint", "manta-status", "manta-gate", "manta-evidence", "todowrite", "visual-cortex_*", "hive_context", "hive_scan", "hive_status", "hive_trash_list", "hive_trash_status", "hive_remember", "hive_forget", "hive_purge", "hive_restore", "reasoning-bus_*"]
@@ -4878,7 +4808,6 @@ async function MantaAgent(input) {
   const codeReviewTool = createMantaCodeReviewTool(psm.brain);
   const runtimeAuditTool = createMantaRuntimeAuditTool(mantaDir);
   const codeAuditTool = createMantaCodeAuditTool(mantaDir);
-  const visionTool = createMantaVisionTool();
   const compactionTool = createMantaCompactionTool(compactionManager, gm);
   const hooks = createMantaHooks(guardian, gm, ec, coordinator, stateStore, messenger, psm.brain, undefined, compactionManager);
   return {
@@ -4893,7 +4822,6 @@ async function MantaAgent(input) {
       "manta-code-review": codeReviewTool,
       "manta-runtime-audit": runtimeAuditTool,
       "manta-code-audit": codeAuditTool,
-      "manta-vision": visionTool,
       "manta-compaction": compactionTool,
       ...psm.tools
     },
@@ -4935,5 +4863,5 @@ export {
   MantaAgent as default
 };
 
-//# debugId=DFEFE28DEDCBCD5264756E2164756E21
+//# debugId=80CEEF0D4F0019C064756E2164756E21
 //# sourceMappingURL=index.js.map

@@ -21,7 +21,6 @@ import { createMantaTestRunnerTool } from './tools/manta-test-runner.js';
 import { createMantaCodeReviewTool } from './tools/manta-code-review.js';
 import { createMantaRuntimeAuditTool } from './tools/manta-runtime-audit.js';
 import { createMantaCodeAuditTool } from './tools/manta-code-audit.js';
-import { createMantaVisionTool } from './tools/manta-vision.js';
 import { createMantaCompactionTool } from './tools/manta-compaction.js';
 import { setPluginDirectory, loadMantaIdentity } from './shared/manta-identity-loader.js';
 import { MANTA_AGENTS_CONFIG } from './agents/definitions.js';
@@ -65,7 +64,6 @@ export default async function MantaAgent(input: PluginInput): Promise<Hooks> {
   const codeReviewTool = createMantaCodeReviewTool(psm.brain);
   const runtimeAuditTool = createMantaRuntimeAuditTool(mantaDir);
   const codeAuditTool = createMantaCodeAuditTool(mantaDir);
-  const visionTool = createMantaVisionTool();
   const compactionTool = createMantaCompactionTool(compactionManager, gm);
   const hooks = createMantaHooks(guardian, gm, ec, coordinator as any, stateStore, messenger, psm.brain, undefined, compactionManager);
   return {
@@ -80,7 +78,6 @@ export default async function MantaAgent(input: PluginInput): Promise<Hooks> {
       'manta-code-review': codeReviewTool as any,
       'manta-runtime-audit': runtimeAuditTool as any,
       'manta-code-audit': codeAuditTool as any,
-      'manta-vision': visionTool as any,
       'manta-compaction': compactionTool as any,
       ...psm.tools as any,
     },

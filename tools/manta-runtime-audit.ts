@@ -30,7 +30,8 @@ export function createMantaRuntimeAuditTool(basePath: string = '.manta') {
         try {
           const ct = JSON.parse(fs.readFileSync(containerTestPath, 'utf-8'));
           checks.push({ name: 'container-test-evidence', passed: true, detail: `Found: passRate=${ct.passRate || 'unknown'}` });
-        } catch {
+        } catch (e) {
+          mantaError('runtime-audit: container test parse failed:', e);
           checks.push({ name: 'container-test-evidence', passed: false, detail: 'File exists but is not valid JSON' });
         }
       } else {
@@ -43,7 +44,8 @@ export function createMantaRuntimeAuditTool(basePath: string = '.manta') {
           const ct = JSON.parse(fs.readFileSync(containerTestPath, 'utf-8'));
           const rate = ct.passRate ?? ct.pass_rate ?? 0;
           checks.push({ name: 'pass-rate', passed: rate >= 0.96, detail: `Pass rate: ${(rate * 100).toFixed(1)}% (required: ≥96%)` });
-        } catch {
+        } catch (e) {
+          mantaError('runtime-audit: pass rate parse failed:', e);
           checks.push({ name: 'pass-rate', passed: false, detail: 'Cannot parse pass rate' });
         }
       } else {
@@ -142,7 +144,8 @@ export function createMantaRuntimeAuditTool(basePath: string = '.manta') {
         try {
           const review = JSON.parse(fs.readFileSync(reviewPath, 'utf-8'));
           checks.push({ name: 'code-review', passed: review.overallPassed !== false, detail: `Code review: ${review.overallPassed !== false ? 'passed' : 'failed'}` });
-        } catch {
+        } catch (e) {
+          mantaError('runtime-audit: code review parse failed:', e);
           checks.push({ name: 'code-review', passed: false, detail: 'Code review file not valid JSON' });
         }
       } else {

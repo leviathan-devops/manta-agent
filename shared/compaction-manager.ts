@@ -1,5 +1,5 @@
 /**
- * Manta Compaction Survival System v2.2 — Dense Proactive Edition
+ * Manta Compaction Survival System v2.2.2 — Dense Proactive Edition
  *
  * Principles (from Kraken T2 + crash-recovery + compaction-survival patterns):
  *
@@ -484,7 +484,7 @@ export class CompactionManager {
 
 ## Stream Anchor
 
-**Agent:** MANTA v2.2
+**Agent:** MANTA v2.2.2
 **Time:** ${ts}
 **Tier:** ${tierLabel}
 **Trigger:** ${trigger}
@@ -508,7 +508,7 @@ Then:
 
 ## Identity Reminder
 
-You are **MANTA v2.2** — dual-brain sequential precision agent.
+You are **MANTA v2.2.2** — dual-brain sequential precision agent.
 - NOT Shark, NOT Kraken, NOT generic
 - Architecture: Plan Brain + Build Brain (sequential)
 - 17 tools registered

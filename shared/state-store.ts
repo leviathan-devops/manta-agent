@@ -40,7 +40,7 @@ export interface StateStore {
   cleanup(): void;
 }
 
-// Manta v2.2 domain ownership
+// Manta v2.2.2 domain ownership
 export const DOMAIN_OWNERSHIP: Record<StateDomain, string[]> = {
   'plan-state': ['manta-plan-brain'],
   'manta-state': ['manta-coordinator'],

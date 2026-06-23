@@ -109,9 +109,4 @@ export class MantaCoordinator {
       });
     }
   }
-
-  getActiveT1(planBrainT1: string, buildBrainT1: string): string {
-    const current = this.getCurrentBrain();
-    return current === 'plan' ? planBrainT1 : buildBrainT1;
-  }
 }
