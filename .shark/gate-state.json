@@ -1,0 +1,25 @@
+{
+  "currentGate": "plan",
+  "gateStatus": {
+    "plan": "pending",
+    "build": "pending",
+    "verify": "pending",
+    "test": "pending",
+    "audit": "pending",
+    "delivery": "pending"
+  },
+  "gateFailureCount": {
+    "plan": 0,
+    "build": 0,
+    "verify": 0,
+    "test": 0,
+    "audit": 0,
+    "delivery": 0
+  },
+  "gateBlocks": 0,
+  "testAttempts": {},
+  "verifyAttempts": {},
+  "auditFailures": 0,
+  "iteration": 0,
+  "currentIteration": "V1.0"
+}

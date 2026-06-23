@@ -1,0 +1,10 @@
+{
+  "index": 0,
+  "timestamp": "2026-06-22T13:24:57.933Z",
+  "data": {
+    "type": "genesis",
+    "message": "Merkle chain initialized"
+  },
+  "previousHash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "hash": "542b903372fa018f5593b24c9e6b92da8b839f50591ada7b1ad687ac273816d3"
+}

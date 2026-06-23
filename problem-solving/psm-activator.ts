@@ -1,5 +1,5 @@
 /**
- * PSM Activator — Contextually Aware Reasoning Firewall v2.0
+ * PSM Activator v2.2.2 — Contextually Aware Reasoning Firewall
  *
  * Three-tier activation ladder:
  *   Tier 1: PROACTIVE — task complexity classification at session start
